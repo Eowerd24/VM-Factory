@@ -117,7 +117,8 @@ Current script status:
 The repo now has a minimal shell smoke test:
 
 ```bash
-./tests/test-l0-dry-run.sh
+bash tests/test-l0-dry-run.sh
+bash tests/test-l0-core-args.sh
 ```
 
 Other available validation:

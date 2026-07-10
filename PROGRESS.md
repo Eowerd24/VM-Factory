@@ -31,14 +31,14 @@ Last updated: 2026-07-10
 - W-007 — Canonical markdown operating docs created to replace placeholder/legacy guidance while preserving the legacy `.docx` files.
 - W-008 — Implemented `lib-l0-core.sh` to supply the wrapper's shared CLI/runtime helpers and conservative L0 baseline actions.
 - W-009 — Added `tests/test-l0-dry-run.sh` to validate full wrapper execution in non-root dry-run mode.
+- W-010 — Added `tests/test-l0-core-args.sh` to verify the shared shell argument parser independently.
 
 ## Work In Progress
-- W-011 — Final review and commit of the restored shell bootstrap baseline.
+- W-011 — Commit the expanded shell test coverage and refresh the handoff state.
 
 ## Next Authorized Actions
-- W-012 — Expand shell test coverage beyond the single dry-run smoke path.
-- W-013 — Validate the bootstrap flow on a real disposable Ubuntu VM target.
-- W-014 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
+- W-012 — Validate the bootstrap flow on a real disposable Ubuntu VM target.
+- W-013 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
 
 ## Backlog
 - B-001 — Decide and add the first real repository manifest/configuration strategy once code beyond Bash is introduced.
@@ -89,12 +89,29 @@ No active human-only blockers are currently recorded.
 - `bash -n lib-l0-core.sh` — passed
 - `bash -n l0-server-vm.sh` — passed
 - `bash tests/test-l0-dry-run.sh` — passed
+- `bash tests/test-l0-core-args.sh` — passed
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git diff --check` — passed
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` — passed
 - plain `git diff --check` without sandbox-safe env — blocked by sandbox access to `/etc/gitconfig`, not by repository content
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git push -u origin agent/project-bootstrap-20260710` — failed because `git remote-https` is unavailable in the VM
 
 ## Recent Work Log
+- 2026-07-10 — Shell argument parser test validated
+  - Worker: Agent
+  - Summary: Verified the new direct parser test and re-ran the existing shell smoke test with clean diff hygiene.
+  - Validation:
+    - `bash tests/test-l0-core-args.sh` passed
+    - `bash tests/test-l0-dry-run.sh` passed
+    - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git diff --check` passed
+    - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` passed
+  - Git state: branch `agent/project-bootstrap-20260710`, parser-test changes uncommitted
+  - Next action: commit the test coverage extension.
+- 2026-07-10 — Shell test coverage expanded
+  - Worker: Agent
+  - Summary: Added a dedicated argument-parsing test for the shared core library to cover a second non-runtime code path beyond the dry-run wrapper smoke test.
+  - Validation: In progress
+  - Git state: branch `agent/project-bootstrap-20260710`, test expansion changes uncommitted
+  - Next action: run the new test, re-run diff hygiene, and commit if clean.
 - 2026-07-10 — L0 core validated
   - Worker: Agent
   - Summary: Verified the new shell core and wrapper path with syntax checks, dry-run smoke execution, and diff hygiene.

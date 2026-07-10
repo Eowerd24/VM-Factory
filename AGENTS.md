@@ -73,7 +73,8 @@ Verified commands:
 ```bash
 bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
-./tests/test-l0-dry-run.sh
+bash tests/test-l0-dry-run.sh
+bash tests/test-l0-core-args.sh
 ```
 
 Current execution reality:
@@ -103,7 +104,8 @@ Current verified command set:
 ```bash
 bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
-./tests/test-l0-dry-run.sh
+bash tests/test-l0-dry-run.sh
+bash tests/test-l0-core-args.sh
 git diff --check
 ```
 
