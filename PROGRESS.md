@@ -4,10 +4,10 @@
 Phase: Repository bootstrap and baseline verification
 
 ## Current Milestone
-Milestone: Replace placeholder governance docs with verified repository-specific operating documents
+Milestone: Restore executable shell bootstrap baseline and keep repository operating docs accurate
 
 ## Current Objective
-Objective: Document the real state of the planning repository, preserve legacy files, and establish an accurate handoff for autonomous follow-on implementation.
+Objective: Restore the missing L0 core shell library, validate the wrapper in dry-run mode, and update the handoff to reflect the repo's new executable baseline.
 
 ## Baton Holder
 Baton holder: Agent
@@ -29,18 +29,20 @@ Last updated: 2026-07-10
 - W-005 — Existing implementation inspected: `l0-server-vm.sh`.
 - W-006 — Dedicated branch created: `agent/project-bootstrap-20260710`.
 - W-007 — Canonical markdown operating docs created to replace placeholder/legacy guidance while preserving the legacy `.docx` files.
+- W-008 — Implemented `lib-l0-core.sh` to supply the wrapper's shared CLI/runtime helpers and conservative L0 baseline actions.
+- W-009 — Added `tests/test-l0-dry-run.sh` to validate full wrapper execution in non-root dry-run mode.
 
 ## Work In Progress
-- W-010 — Push attempt review and handoff finalization.
+- W-011 — Final review and commit of the restored shell bootstrap baseline.
 
 ## Next Authorized Actions
-- W-011 — After bootstrap, begin the next realistic implementation task: restore or implement the missing `lib-l0-core.sh` dependency required by `l0-server-vm.sh`.
-- W-012 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
+- W-012 — Expand shell test coverage beyond the single dry-run smoke path.
+- W-013 — Validate the bootstrap flow on a real disposable Ubuntu VM target.
+- W-014 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
 
 ## Backlog
-- B-001 — Implement or restore `lib-l0-core.sh` so the existing wrapper can execute.
-- B-002 — Decide and add the first real repository manifest/configuration strategy once code beyond Bash is introduced.
-- B-003 — Add a minimal shell validation/test workflow for bootstrap scripts.
+- B-001 — Decide and add the first real repository manifest/configuration strategy once code beyond Bash is introduced.
+- B-002 — Add broader shell validation/test workflow for bootstrap scripts.
 - B-004 — Convert or retire legacy `.docx` docs after the markdown workflow is accepted.
 - B-005 — Add `.gitignore` if new runtime artifacts, environments, or test outputs begin to appear.
 
@@ -55,19 +57,14 @@ Last updated: 2026-07-10
 None currently. No human decision is blocking the next repository-local implementation step.
 
 ## Active Blockers
-- BLK-001 — Missing core shell library
-  - Blocked work: end-to-end execution of `l0-server-vm.sh`
-  - Cause: the script sources `lib-l0-core.sh`, which is not present in the repository tree
-  - Attempts made: repository tree inspection and direct script inspection confirmed the dependency is absent
-  - Required human action: none yet; this is an implementation blocker, not a human-only blocker
-  - Status: Active
+No active human-only blockers are currently recorded.
 
 ## Known Issues
-- KI-001 — `l0-server-vm.sh` cannot run from the current repository snapshot
-  - Observed behavior: the script contains a hard failure path if `lib-l0-core.sh` is missing
-  - Expected behavior: the wrapper should be able to source its core library from the repository
-  - Reproduction: inspect `l0-server-vm.sh` and note the `if [[ ! -f "${SCRIPT_DIR}/lib-l0-core.sh" ]]` guard
-  - Impact: High
+- KI-001 — Privileged runtime is only partially verified
+  - Observed behavior: the wrapper now executes in non-root dry-run mode, but no real Ubuntu VM mutation run has been performed from this repo session
+  - Expected behavior: the bootstrap flow should be exercised on an actual disposable Ubuntu target
+  - Reproduction: compare available local validation to the intended `sudo bash ./l0-server-vm.sh --dry-run` or real run path
+  - Impact: Medium
   - Status: Open
 - KI-002 — Repository is documentation/planning only
   - Observed behavior: no tests, CI config, dependency manifests, lockfiles, or build config were found
@@ -81,15 +78,40 @@ None currently. No human decision is blocking the next repository-local implemen
   - Reproduction: inspect root filenames and unzip the `.docx` files
   - Impact: Medium
   - Status: Open
+- KI-004 — Push remains unavailable from the current VM git install
+  - Observed behavior: `git push` fails because `git remote-https` is unavailable
+  - Expected behavior: standard HTTPS remotes should be usable when push is needed
+  - Reproduction: `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git push -u origin agent/project-bootstrap-20260710`
+  - Impact: Medium
+  - Status: Open
 
 ## Validation Status
+- `bash -n lib-l0-core.sh` — passed
 - `bash -n l0-server-vm.sh` — passed
-- `git diff --check` — passed
+- `bash tests/test-l0-dry-run.sh` — passed
+- `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git diff --check` — passed
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` — passed
 - plain `git diff --check` without sandbox-safe env — blocked by sandbox access to `/etc/gitconfig`, not by repository content
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git push -u origin agent/project-bootstrap-20260710` — failed because `git remote-https` is unavailable in the VM
 
 ## Recent Work Log
+- 2026-07-10 — L0 core validated
+  - Worker: Agent
+  - Summary: Verified the new shell core and wrapper path with syntax checks, dry-run smoke execution, and diff hygiene.
+  - Validation:
+    - `bash -n lib-l0-core.sh` passed
+    - `bash -n l0-server-vm.sh` passed
+    - `bash tests/test-l0-dry-run.sh` passed
+    - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git diff --check` passed
+    - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` passed
+  - Git state: branch `agent/project-bootstrap-20260710`, shell/bootstrap changes uncommitted
+  - Next action: inspect final diff and commit the shell/bootstrap unit.
+- 2026-07-10 — L0 core implementation started
+  - Worker: Agent
+  - Summary: Implemented the missing shared shell core and added a dry-run smoke test so the wrapper can execute from this repository without the previous hard dependency failure.
+  - Validation: In progress
+  - Git state: branch `agent/project-bootstrap-20260710`
+  - Next action: run shell syntax checks, smoke test, and final diff validation.
 - 2026-07-10 — Documentation bootstrap started
   - Worker: Agent
   - Summary: Added canonical markdown docs and `.doxs` compatibility pointers; verified `bash -n l0-server-vm.sh`, `git diff --check`, and sandbox-safe git status.
@@ -126,14 +148,15 @@ None currently. No human decision is blocking the next repository-local implemen
 - Base branch at start: `main`
 - HEAD commit at inspection start: `bc995c5` (`Add files via upload`)
 - Working tree state at inspection start: clean
-- Current HEAD commit: `b9d71d5` (`docs: bootstrap repository operating docs`)
-- Commit state for current work: committed locally, not pushed
+- Current HEAD commit: `6a94040` (`docs: finalize progress handoff`)
+- Commit state for current work: uncommitted shell/bootstrap changes present
 
 ## Exact Resume Point
 Resume from:
 
-1. run `bash -n l0-server-vm.sh`
-2. run `git diff --check`
-3. review `git status --short --branch`
-4. if needed, restore git HTTPS remote support before retrying push
-5. start W-011 by implementing or restoring `lib-l0-core.sh`
+1. run `bash -n lib-l0-core.sh`
+2. run `bash -n l0-server-vm.sh`
+3. run `bash tests/test-l0-dry-run.sh`
+4. run `git diff --check`
+5. review `git status --short --branch`
+6. commit the shell/bootstrap work

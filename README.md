@@ -2,7 +2,7 @@
 
 `VM-Factory` is currently a planning and bootstrap repository for an AI Worker Factory / Node Lifecycle Pipeline. The repository describes a system for building credential-free Ubuntu golden images, cloning disposable worker VMs, assigning project work, collecting results, and resetting or retiring nodes. The current implementation in this repo is still early: two substantial planning documents and one Bash wrapper for a server VM golden-image layer.
 
-Current status: planning/prototype. There is no runnable application, package manifest, CI pipeline, or automated test suite in the current snapshot. The only implementation file, [`l0-server-vm.sh`](/home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh), references a missing `lib-l0-core.sh`, so the bootstrap script is not yet executable end to end from this repository alone.
+Current status: planning/prototype. There is still no runnable application, package manifest, CI pipeline, or build system in the current snapshot, but the shell bootstrap layer now includes a shared core library and a dry-run smoke test. The repo is still early-stage rather than production-ready.
 
 ## Read First
 - [`AGENTS.md`](/home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md)
@@ -44,14 +44,18 @@ Current verified structure:
 ├── README.md.docx
 ├── ai-worker-factory-plan.md
 ├── factory-panel-convergence.md
-└── l0-server-vm.sh
+├── lib-l0-core.sh
+├── l0-server-vm.sh
+└── tests/
 ```
 
 File roles:
 
 - `ai-worker-factory-plan.md`: primary product and architecture plan
 - `factory-panel-convergence.md`: convergence plan between the factory and a panel-style wrapper
+- `lib-l0-core.sh`: shared L0 baseline library sourced by the VM wrapper
 - `l0-server-vm.sh`: current Bash implementation artifact
+- `tests/`: shell smoke validation for the bootstrap layer
 - `AGENTS.md`: repository-specific instructions for coding agents
 - `FIRE-AWAY.md`: autonomous execution contract inside the VM
 - `PROGRESS.md`: live operational state and handoff
@@ -105,19 +109,25 @@ No runnable application exists yet.
 
 Current script status:
 
-- intended command: `sudo bash ./l0-server-vm.sh --dry-run`
-- current state: unverified and effectively blocked because `lib-l0-core.sh` is missing from the repository
+- dry-run validation command: `L0_ALLOW_NON_ROOT=1 bash ./l0-server-vm.sh --dry-run`
+- intended privileged command on an Ubuntu target: `sudo bash ./l0-server-vm.sh --dry-run`
+- current state: executable for dry-run validation; real system mutation still expects an Ubuntu-like target environment with `useradd`, `ufw`, `systemctl`, `dpkg`, and related base tools available
 
 ## Testing
-No test suite exists yet.
-
-Current available validation:
+The repo now has a minimal shell smoke test:
 
 ```bash
+./tests/test-l0-dry-run.sh
+```
+
+Other available validation:
+
+```bash
+bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
 ```
 
-This checks shell syntax only. It does not prove runtime correctness.
+The smoke test verifies full wrapper execution in non-root dry-run mode. It does not prove privileged runtime correctness on a target Ubuntu VM.
 
 ## Linting
 No lint configuration or lint command was found.
@@ -177,4 +187,4 @@ Verified maturity assessment:
 - validation: minimal
 - automation: not yet established in-repo
 
-The next realistic work item is to add or restore `lib-l0-core.sh` so the existing shell wrapper can be executed and validated properly.
+The next realistic work item is to broaden the L0 shell test coverage and then validate the bootstrap flow against a real disposable Ubuntu VM target.

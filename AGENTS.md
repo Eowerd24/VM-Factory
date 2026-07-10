@@ -71,28 +71,39 @@ There is no installable application or package manager environment in the curren
 Verified commands:
 
 ```bash
+bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
+./tests/test-l0-dry-run.sh
 ```
 
 Current execution reality:
 
 - `l0-server-vm.sh` is a Bash script intended to run on Ubuntu with `sudo`
-- it depends on `lib-l0-core.sh`, which is not present in this repository
-- because of that missing dependency, no verified end-to-end setup or run command exists yet
+- it depends on `lib-l0-core.sh`, which is now present in this repository
+- a non-root dry-run smoke test exists
+- privileged runtime behavior on a real Ubuntu target remains only partially verified
 
-Use dry-run invocation only after the missing core library is added:
+Use dry-run invocation for repository-local validation:
+
+```bash
+L0_ALLOW_NON_ROOT=1 bash ./l0-server-vm.sh --dry-run
+```
+
+Use privileged dry-run on a real target VM when available:
 
 ```bash
 sudo bash ./l0-server-vm.sh --dry-run
 ```
 
-Status: currently unverified in this repository because `lib-l0-core.sh` is absent.
+Status: dry-run path is verified locally; privileged runtime remains partially verified.
 
 ## Actual Test, Lint, Type-Check, Build, and Run Commands
 Current verified command set:
 
 ```bash
+bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
+./tests/test-l0-dry-run.sh
 git diff --check
 ```
 
