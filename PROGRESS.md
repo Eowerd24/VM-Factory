@@ -31,12 +31,11 @@ Last updated: 2026-07-10
 - W-007 — Canonical markdown operating docs created to replace placeholder/legacy guidance while preserving the legacy `.docx` files.
 
 ## Work In Progress
-- W-008 — Validate and finalize the new root documentation set against actual repository state.
-- W-009 — Commit the documentation bootstrap as one coherent change.
+- W-010 — Push attempt review and handoff finalization.
 
 ## Next Authorized Actions
-- W-010 — Push the branch if authentication works without additional setup.
 - W-011 — After bootstrap, begin the next realistic implementation task: restore or implement the missing `lib-l0-core.sh` dependency required by `l0-server-vm.sh`.
+- W-012 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
 
 ## Backlog
 - B-001 — Implement or restore `lib-l0-core.sh` so the existing wrapper can execute.
@@ -88,6 +87,7 @@ None currently. No human decision is blocking the next repository-local implemen
 - `git diff --check` — passed
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` — passed
 - plain `git diff --check` without sandbox-safe env — blocked by sandbox access to `/etc/gitconfig`, not by repository content
+- `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git push -u origin agent/project-bootstrap-20260710` — failed because `git remote-https` is unavailable in the VM
 
 ## Recent Work Log
 - 2026-07-10 — Documentation bootstrap started
@@ -99,6 +99,15 @@ None currently. No human decision is blocking the next repository-local implemen
     - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` passed
   - Git state: branch `agent/project-bootstrap-20260710`, documentation changes uncommitted
   - Next action: create one coherent documentation commit, then attempt push.
+- 2026-07-10 — Documentation bootstrap committed
+  - Worker: Agent
+  - Summary: Created commit `b9d71d5` (`docs: bootstrap repository operating docs`) and attempted branch push.
+  - Validation:
+    - commit created successfully
+    - post-commit `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` returned a clean branch state
+    - push failed because git HTTPS remote support is missing in the VM (`git: 'remote-https' is not a git command`)
+  - Git state: branch `agent/project-bootstrap-20260710`, local commit ahead of `main`, not pushed
+  - Next action: continue repository-local implementation on this branch or restore git HTTPS support before pushing.
 - 2026-07-10 — Documentation bootstrap started
   - Worker: Agent
   - Summary: Verified the repository is a planning/bootstrap repo with one Bash wrapper and missing core dependency; created markdown operating docs grounded in the actual tree and preserved the legacy `.docx` files.
@@ -117,7 +126,8 @@ None currently. No human decision is blocking the next repository-local implemen
 - Base branch at start: `main`
 - HEAD commit at inspection start: `bc995c5` (`Add files via upload`)
 - Working tree state at inspection start: clean
-- Commit state for current work: uncommitted documentation changes present
+- Current HEAD commit: `b9d71d5` (`docs: bootstrap repository operating docs`)
+- Commit state for current work: committed locally, not pushed
 
 ## Exact Resume Point
 Resume from:
@@ -125,6 +135,5 @@ Resume from:
 1. run `bash -n l0-server-vm.sh`
 2. run `git diff --check`
 3. review `git status --short --branch`
-4. commit the documentation bootstrap
-5. attempt `git push -u origin agent/project-bootstrap-20260710` if authentication works
-6. start W-011 by implementing or restoring `lib-l0-core.sh`
+4. if needed, restore git HTTPS remote support before retrying push
+5. start W-011 by implementing or restoring `lib-l0-core.sh`
