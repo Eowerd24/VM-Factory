@@ -71,6 +71,7 @@ There is no installable application or package manager environment in the curren
 Verified commands:
 
 ```bash
+bash scripts/test.sh
 bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
 bash tests/test-l0-dry-run.sh
@@ -102,6 +103,7 @@ Status: dry-run path is verified locally; privileged runtime remains partially v
 Current verified command set:
 
 ```bash
+bash scripts/test.sh
 bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
 bash tests/test-l0-dry-run.sh

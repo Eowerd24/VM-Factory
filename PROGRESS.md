@@ -32,13 +32,14 @@ Last updated: 2026-07-10
 - W-008 — Implemented `lib-l0-core.sh` to supply the wrapper's shared CLI/runtime helpers and conservative L0 baseline actions.
 - W-009 — Added `tests/test-l0-dry-run.sh` to validate full wrapper execution in non-root dry-run mode.
 - W-010 — Added `tests/test-l0-core-args.sh` to verify the shared shell argument parser independently.
+- W-011 — Added `scripts/test.sh` as the canonical repository-local validation entry point for the shell layer.
 
 ## Work In Progress
-- W-011 — Commit the expanded shell test coverage and refresh the handoff state.
+- W-012 — Commit the canonical test entry point and refresh the handoff.
 
 ## Next Authorized Actions
-- W-012 — Validate the bootstrap flow on a real disposable Ubuntu VM target.
-- W-013 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
+- W-013 — Validate the bootstrap flow on a real disposable Ubuntu VM target.
+- W-014 — If remote push capability is needed from this VM, install or restore git HTTPS remote support before retrying `git push`.
 
 ## Backlog
 - B-001 — Decide and add the first real repository manifest/configuration strategy once code beyond Bash is introduced.
@@ -90,12 +91,27 @@ No active human-only blockers are currently recorded.
 - `bash -n l0-server-vm.sh` — passed
 - `bash tests/test-l0-dry-run.sh` — passed
 - `bash tests/test-l0-core-args.sh` — passed
+- `bash scripts/test.sh` — passed
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git diff --check` — passed
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` — passed
 - plain `git diff --check` without sandbox-safe env — blocked by sandbox access to `/etc/gitconfig`, not by repository content
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git push -u origin agent/project-bootstrap-20260710` — failed because `git remote-https` is unavailable in the VM
 
 ## Recent Work Log
+- 2026-07-10 — Canonical shell test entry point validated
+  - Worker: Agent
+  - Summary: Verified `bash scripts/test.sh` as the single repository-local validation command for the current shell layer.
+  - Validation:
+    - `bash scripts/test.sh` passed
+    - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` passed
+  - Git state: branch `agent/project-bootstrap-20260710`, test-runner changes uncommitted
+  - Next action: commit the canonical test entry point.
+- 2026-07-10 — Canonical shell test entry point added
+  - Worker: Agent
+  - Summary: Added `scripts/test.sh` so future agents can run one command instead of manually chaining syntax checks and shell tests.
+  - Validation: In progress
+  - Git state: branch `agent/project-bootstrap-20260710`, test-runner changes uncommitted
+  - Next action: run `bash scripts/test.sh`, then commit if clean.
 - 2026-07-10 — Shell argument parser test validated
   - Worker: Agent
   - Summary: Verified the new direct parser test and re-ran the existing shell smoke test with clean diff hygiene.

@@ -117,6 +117,7 @@ Current script status:
 The repo now has a minimal shell smoke test:
 
 ```bash
+bash scripts/test.sh
 bash tests/test-l0-dry-run.sh
 bash tests/test-l0-core-args.sh
 ```
@@ -124,6 +125,7 @@ bash tests/test-l0-core-args.sh
 Other available validation:
 
 ```bash
+bash scripts/test.sh
 bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
 ```
