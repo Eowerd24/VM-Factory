@@ -5,12 +5,12 @@
 Current status: planning/prototype. There is still no runnable application, package manifest, CI pipeline, or build system in the current snapshot, but the shell bootstrap layer now includes a shared core library and a dry-run smoke test. The repo is still early-stage rather than production-ready.
 
 ## Read First
-- [`AGENTS.doxs`](/home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.doxs)
-- [`FIRE-AWAY.doxs`](/home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.doxs)
-- [`PROGRESS.doxs`](/home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.doxs)
-- [`README.doxs`](/home/sarge/Desktop/AI-Factory/VM-Factory/README.doxs)
-- [`ai-worker-factory-plan.md`](/home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md)
-- [`factory-panel-convergence.md`](/home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md)
+- [AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md) / [AGENTS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.doxs)
+- [FIRE-AWAY.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.md) / [FIRE-AWAY.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.doxs)
+- [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md) / [PROGRESS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.doxs)
+- [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md) / [README.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.doxs)
+- [ai-worker-factory-plan.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md)
+- [factory-panel-convergence.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md)
 
 ## What The Project Does
 The current design documents define a VM-centric automation system with these major concerns:
@@ -24,7 +24,7 @@ The current design documents define a VM-centric automation system with these ma
 - audit/ledger and state-manifest design
 - future convergence with a panel/UI wrapper
 
-The current script implements only a narrow slice of that plan: an L0 wrapper intended to harden and prepare a server VM golden baseline.
+The current scripts and engine library implement the core logic for the node lifecycle and the golden image VM preparation wrapper.
 
 ## Repository Structure
 Current verified structure:
@@ -34,6 +34,7 @@ Current verified structure:
 ├── AGENTS.docx
 ├── AGENTS.doxs
 ├── AGENTS.md
+├── .gitignore
 ├── FIRE-AWAY.docx
 ├── FIRE-AWAY.doxs
 ├── FIRE-AWAY.md
@@ -47,25 +48,44 @@ Current verified structure:
 ├── factory-panel-convergence.md
 ├── lib-l0-core.sh
 ├── l0-server-vm.sh
+├── pyproject.toml
+├── uv.lock
+├── package.json
+├── package-lock.json
+├── library/
+│   ├── credentials.py
+│   ├── engine.py
+│   ├── hypervisor.py
+│   ├── ledger.py
+│   ├── manifest.py
+│   ├── models.py
+│   ├── payloads.py
+│   ├── reports.py
+│   └── transport.py
 ├── scripts/
 │   └── test.sh
 └── tests/
     ├── test-l0-core-args.sh
-    └── test-l0-dry-run.sh
+    ├── test-l0-dry-run.sh
+    └── test_library.py
 ```
 
 File roles:
 
-- `ai-worker-factory-plan.md`: primary product and architecture plan
-- `factory-panel-convergence.md`: convergence plan between the factory and a panel-style wrapper
-- `lib-l0-core.sh`: shared L0 baseline library sourced by the VM wrapper
-- `l0-server-vm.sh`: current Bash implementation artifact
-- `scripts/`: unified repository-local validation script
-- `tests/`: shell smoke validation and argument parsing checks for the bootstrap layer
-- `AGENTS.md` / `AGENTS.doxs`: repository-specific instructions for coding agents
-- `FIRE-AWAY.md` / `FIRE-AWAY.doxs`: autonomous execution contract inside the VM
-- `PROGRESS.md` / `PROGRESS.doxs`: live operational state and handoff
-- `README.md` / `README.doxs`: this documentation file
+- [ai-worker-factory-plan.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md): primary product and architecture plan
+- [factory-panel-convergence.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md): convergence plan between the factory and a panel-style wrapper
+- [lib-l0-core.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh): shared L0 baseline library sourced by the VM wrapper
+- [l0-server-vm.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh): current Bash VM golden image builder
+- [library/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/): Python engine modules for managing nodes, state, credentials, ledger actions, hypervisors, and task reports
+- [scripts/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/scripts/): unified repository-local validation script
+- [tests/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/): shell and python tests verifying both dry-runs and library engine logic
+- [.gitignore](file:///home/sarge/Desktop/AI-Factory/VM-Factory/.gitignore): repository-local ignore rules for disposable runtime, cache, coverage, editor, and secret-like files
+- [pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml) & [uv.lock](file:///home/sarge/Desktop/AI-Factory/VM-Factory/uv.lock): Python dependencies configuration and lockfile managed by `uv`
+- [package.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package.json) & [package-lock.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package-lock.json): Node.js packages for local command tooling (e.g. DeepSeek CLI)
+- [AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md) / [AGENTS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.doxs): repository-specific instructions for coding agents
+- [FIRE-AWAY.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.md) / [FIRE-AWAY.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.doxs): autonomous execution contract inside the VM
+- [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md) / [PROGRESS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.doxs): live operational state and handoff
+- [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md) / [README.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.doxs): this documentation file
 - `*.docx`: preserved legacy docs
 
 ## Requirements
@@ -90,7 +110,15 @@ Inferred runtime requirements for the shell bootstrap work, based on `l0-server-
 These are implementation expectations, not a verified setup flow from this repo.
 
 ## Installation
-There is no repository-local install process yet because there is no package manifest or runnable app.
+The project dependencies are managed via `uv` (Python) and `npm` (Node.js). To initialize the environment:
+
+```bash
+# Set up Python virtual environment and install dependencies
+uv sync
+
+# Install Node.js dependencies
+npm install
+```
 
 Useful verified entry commands:
 
@@ -110,6 +138,10 @@ Security rule:
 
 If future work introduces configuration files, prefer example templates only.
 
+Repository hygiene:
+
+- `.gitignore` now excludes local virtualenvs, Python caches, pytest/coverage outputs, editor swap files, and `.env`-style local secret files.
+
 ## Running The Project
 No runnable application exists yet.
 
@@ -120,12 +152,16 @@ Current script status:
 - current state: executable for dry-run validation; real system mutation still expects an Ubuntu-like target environment with `useradd`, `ufw`, `systemctl`, `dpkg`, and related base tools available.
 
 ## Testing
-The repo has a minimal shell smoke test and argument parser checks:
+The validation suite runs both shell tests and Python unit tests:
 
 ```bash
+# Run all tests and diff checks
 bash scripts/test.sh
+
+# Or run components separately:
 bash tests/test-l0-dry-run.sh
 bash tests/test-l0-core-args.sh
+PYTHONPATH=. uv run pytest
 ```
 
 The smoke test verifies full wrapper execution in non-root dry-run mode. It does not prove privileged runtime correctness on a target Ubuntu VM.

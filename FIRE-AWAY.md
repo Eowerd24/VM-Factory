@@ -43,23 +43,22 @@ Never expose services outside the VM.
 ## Repository-Specific Reality
 Current repo state:
 
-- planning-first repository
-- one shell script wrapper: `l0-server-vm.sh`
-- shared core helper library: `lib-l0-core.sh`
-- dry-run smoke test suite: `tests/test-l0-dry-run.sh`, `tests/test-l0-core-args.sh`, and `scripts/test.sh`
-- no CI configuration
-- no package dependency manifest
-- no runnable application product yet (planning/prototype phase)
+- Planning/prototype phase transition to implementation.
+- Bash golden image bootstrap tools ([l0-server-vm.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh) and [lib-l0-core.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh)) with dry-run smoke tests under [tests/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/).
+- Python-based engine library under [library/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/) implementing core logic (manifests, ledger, credentials, etc.) and tests under [tests/test_library.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/test_library.py).
+- Dependency manifests ([pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml), [package.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package.json)) and lockfiles ([uv.lock](file:///home/sarge/Desktop/AI-Factory/VM-Factory/uv.lock), [package-lock.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package-lock.json)) are present.
+- A unified test entrypoint [scripts/test.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/scripts/test.sh) is provided.
+- No CI configuration.
 
-That means autonomous work should focus on repository bootstrap, missing implementation pieces, tests, and documentation grounded in the existing plan docs.
+That means autonomous work should focus on repository bootstrap, building out the Python engine verbs, extending tests, and maintaining accurate documentation.
 
 ## Default Execution Loop
-1. Read `AGENTS.md`, `PROGRESS.md`, `README.md`, and the planning docs.
+1. Read [AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md), [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md), [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md), and the planning docs.
 2. Inspect git status and current repo contents.
 3. Validate what already exists.
 4. Implement the highest-priority unblocked work item.
 5. Add tests or validation where practical.
-6. Update `PROGRESS.md`.
+6. Update [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md).
 7. Run final checks.
 8. Commit coherent work.
 9. Continue into the next authorized item unless a real blocker stops progress.

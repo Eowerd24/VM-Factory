@@ -1,11 +1,14 @@
 # AGENTS.md
 
 ## Purpose
-This repository currently captures the design and bootstrap baseline for the AI Worker Factory / Node Lifecycle Pipeline. It is not yet a runnable application. The current implementation footprint is:
+This repository captures the design and bootstrap baseline for the AI Worker Factory / Node Lifecycle Pipeline. The current implementation footprint includes:
 
-- planning documents in Markdown
-- legacy placeholder documents stored as `.docx`
-- one shell wrapper, [`l0-server-vm.sh`](/home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh), for building a server VM golden-image layer
+- Planning documents in Markdown
+- Legacy placeholder documents stored as `.docx`
+- The L0 golden-image build scripts (`l0-server-vm.sh` and `lib-l0-core.sh`)
+- Python-based engine library under `library/`
+- Shell and Python validation tests under `tests/`
+- Packaging configuration files (`pyproject.toml`, `uv.lock`, `package.json`, `package-lock.json`)
 
 The immediate engineering goal is to turn the planning repo into a usable bootstrap/codebase for autonomous VM-oriented development without losing any existing user work.
 
@@ -21,11 +24,15 @@ Do not modify:
 - host networking, firewall, SSH, storage, or DNS
 - production systems or live infrastructure
 
-The current repo root contains only:
+The repository contains:
 
 - [`ai-worker-factory-plan.md`](/home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md)
 - [`factory-panel-convergence.md`](/home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md)
 - [`l0-server-vm.sh`](/home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh)
+- [`lib-l0-core.sh`](/home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh)
+- `library/` containing python modules for manifests, hypervisor, transport, credentials, ledger, engine, etc.
+- `scripts/test.sh` canonical validation runner
+- `tests/` containing shell and python test suites
 - legacy `.docx` docs
 
 ## Required Reading Order
@@ -66,22 +73,25 @@ Preflight requirements:
 - treat missing files as repo-state facts, not as user mistakes
 
 ## Actual Setup Commands
-There is no installable application or package manager environment in the current repository snapshot.
+The repository includes a Python-based library and CLI tools, with dependencies managed by `uv` and Node.js dependencies managed by `npm` (for Claude Code and related tooling).
 
 Verified commands:
 
 ```bash
+# Python setup
+uv sync
+
+# Node.js setup
+npm install
+
+# Run validation suite (includes python and shell tests)
 bash scripts/test.sh
-bash -n lib-l0-core.sh
-bash -n l0-server-vm.sh
-bash tests/test-l0-dry-run.sh
-bash tests/test-l0-core-args.sh
 ```
 
 Current execution reality:
 
 - `l0-server-vm.sh` is a Bash script intended to run on Ubuntu with `sudo`
-- it depends on `lib-l0-core.sh`, which is now present in this repository
+- it depends on `lib-l0-core.sh`, which is present in this repository
 - a non-root dry-run smoke test exists
 - privileged runtime behavior on a real Ubuntu target remains only partially verified
 
@@ -108,36 +118,34 @@ bash -n lib-l0-core.sh
 bash -n l0-server-vm.sh
 bash tests/test-l0-dry-run.sh
 bash tests/test-l0-core-args.sh
+PYTHONPATH=. uv run pytest
 git diff --check
 ```
 
 Current state by category:
 
-- Test: no test suite exists yet
-- Lint: no linter config or lint command exists yet
-- Type-check: not applicable yet; no type-check configuration exists
-- Build: no build system or build manifest exists yet
-- Run: no runnable application exists yet
+- Test: Python unit tests exist in `tests/test_library.py` (run via `pytest`). Shell dry-run/argument tests exist under `tests/`. All run via `scripts/test.sh`.
+- Lint: no linter config or lint command exists yet. (Use `bash -n` for shell syntax validation).
+- Type-check: not applicable yet; no type-check configuration exists.
+- Build: no build system or build manifest exists yet.
+- Run: no runnable application wrapper exists yet; however, library files under `library/` implement the core backend functionality (manifests, ledger, hypervisor, etc.).
 
 If you add any of the above, document the exact command in the same change.
 
 ## Dependency Management Rules
 Current repo state:
 
-- no dependency manifest
-- no lockfile
-- no CI config
-- no build config
-- no package manager config
+- Python dependencies managed by `uv` (`pyproject.toml` and `uv.lock` are present)
+- Node.js dependencies managed by `npm` (`package.json` and `package-lock.json` are present)
 
 Rules:
 
-- do not invent a package manager without a strong repo-backed reason
-- if you add Python code, add a real manifest and keep installs repository-local
-- if you add Node code, choose one package manager and commit its lockfile
-- if you add shell tooling dependencies, document them in `README.md` and `PROGRESS.md`
-- do not install global language packages when a repository-local alternative exists
-- do not add heavyweight infrastructure tooling speculatively
+- Keep dependencies minimal and pinned.
+- When adding Python packages, use `uv add <package>` to update `pyproject.toml` and `uv.lock`. Keep installs repository-local within the `.venv`.
+- When adding Node packages, choose `npm` and commit its lockfile.
+- Do not install global packages when repository-local alternatives exist.
+- Document any new environment or system package dependencies in `README.md` and `PROGRESS.md`.
+- Do not add heavyweight infrastructure tooling speculatively.
 
 ## Git Workflow
 Default workflow for this repo:
