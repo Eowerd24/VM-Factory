@@ -44,12 +44,12 @@ Never expose services outside the VM.
 Current repo state:
 
 - planning-first repository
-- one shell script: `l0-server-vm.sh`
-- no test suite
-- no CI
-- no dependency manifest
-- no runnable product yet
-- script depends on missing `lib-l0-core.sh`
+- one shell script wrapper: `l0-server-vm.sh`
+- shared core helper library: `lib-l0-core.sh`
+- dry-run smoke test suite: `tests/test-l0-dry-run.sh`, `tests/test-l0-core-args.sh`, and `scripts/test.sh`
+- no CI configuration
+- no package dependency manifest
+- no runnable application product yet (planning/prototype phase)
 
 That means autonomous work should focus on repository bootstrap, missing implementation pieces, tests, and documentation grounded in the existing plan docs.
 
