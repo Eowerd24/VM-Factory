@@ -44,6 +44,7 @@ Current verified structure:
 ├── README.doxs
 ├── README.md
 ├── README.md.docx
+├── nodectl.py
 ├── ai-worker-factory-plan.md
 ├── factory-panel-convergence.md
 ├── lib-l0-core.sh
@@ -62,12 +63,22 @@ Current verified structure:
 │   ├── payloads.py
 │   ├── reports.py
 │   └── transport.py
+├── panel/
+│   ├── main.py
+│   ├── static/
+│   │   └── style.css
+│   └── templates/
+│       ├── index.html
+│       └── partials/
+│           ├── ledger_list.html
+│           └── node_list.html
 ├── scripts/
 │   └── test.sh
 └── tests/
     ├── test-l0-core-args.sh
     ├── test-l0-dry-run.sh
-    └── test_library.py
+    ├── test_library.py
+    └── test_panel.py
 ```
 
 File roles:
@@ -76,9 +87,11 @@ File roles:
 - [factory-panel-convergence.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md): convergence plan between the factory and a panel-style wrapper
 - [lib-l0-core.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh): shared L0 baseline library sourced by the VM wrapper
 - [l0-server-vm.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh): current Bash VM golden image builder
+- [nodectl.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/nodectl.py): Typer-based command-line interface tool
 - [library/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/): Python engine modules for managing nodes, state, credentials, ledger actions, hypervisors, and task reports
+- [panel/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/panel/): FastAPI + HTMX dashboard web app code, templates, and static style files
 - [scripts/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/scripts/): unified repository-local validation script
-- [tests/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/): shell and python tests verifying both dry-runs and library engine logic
+- [tests/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/): shell and python tests verifying dry-runs, library logic, and web panel routes
 - [.gitignore](file:///home/sarge/Desktop/AI-Factory/VM-Factory/.gitignore): repository-local ignore rules for disposable runtime, cache, coverage, editor, and secret-like files
 - [pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml) & [uv.lock](file:///home/sarge/Desktop/AI-Factory/VM-Factory/uv.lock): Python dependencies configuration and lockfile managed by `uv`
 - [package.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package.json) & [package-lock.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package-lock.json): Node.js packages for local command tooling (e.g. DeepSeek CLI)
@@ -143,8 +156,22 @@ Repository hygiene:
 - `.gitignore` now excludes local virtualenvs, Python caches, pytest/coverage outputs, editor swap files, and `.env`-style local secret files.
 
 ## Running The Project
-The project provides the `nodectl` CLI tool to orchestrate node lifecycle operations.
+The project provides both a command-line interface (`nodectl`) and a web dashboard (`NodePanel`) to orchestrate node lifecycle operations.
 
+### Web Dashboard (NodePanel)
+The `NodePanel` frontend is built using:
+- **FastAPI** (Python web framework)
+- **HTMX** (for dynamic AJAX page swaps and real-time auto-polling)
+- **Jinja2 Templates** (server-rendered HTML pages and state fragments)
+- **Vanilla CSS** (dark-themed styling layout and responsive elements)
+
+To run the web panel locally under mock settings (simulated virtualization/network):
+```bash
+MOCK_SSH=True PYTHONPATH=. uv run uvicorn panel.main:app --host 127.0.0.1 --port 8000
+```
+Then visit **http://127.0.0.1:8000** in your browser.
+
+### Command-Line Interface (nodectl)
 To run `nodectl` locally:
 
 ```bash
