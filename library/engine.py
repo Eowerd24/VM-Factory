@@ -1,6 +1,6 @@
 import yaml
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Tuple
 from library.models import NodeManifest, NodeType, NodeState, NodeResources, LedgerAction, ProjectConfig, CredentialStatus
 from library.manifest import ManifestManager
@@ -72,7 +72,9 @@ class NodeLifecycleEngine:
             raise EngineError(f"Hypervisor failed to create VM '{name}': {e}")
 
         # 3. Create manifest
-        now_utc = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(timezone.utc)
+        now_utc = now.isoformat()
+        expires_utc = (now + timedelta(days=14)).isoformat()
         manifest = NodeManifest(
             schema_version=1,
             name=name,
@@ -81,7 +83,7 @@ class NodeLifecycleEngine:
             state=NodeState.PROVISIONED,
             snapshots=["sx-fresh"],
             created=now_utc,
-            expires=now_utc,  # normally expires is created + ttl_days
+            expires=expires_utc,
             resources=config.resources,
             network="nat-workers"
         )

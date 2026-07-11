@@ -1,6 +1,7 @@
 import subprocess
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from enum import Enum
+from pathlib import Path
 
 class VMState(str, Enum):
     RUNNING = "running"
@@ -133,8 +134,29 @@ class LibvirtHypervisorBackend(HypervisorBackend):
 class MockHypervisorBackend(HypervisorBackend):
     """Simulated in-memory hypervisor for offline development and testing."""
 
-    def __init__(self):
+    def __init__(self, state_file: Optional[Path] = None):
+        self.state_file = state_file
         self.nodes: Dict[str, Dict[str, Any]] = {}
+        self._load()
+
+    def _load(self) -> None:
+        if self.state_file and self.state_file.exists():
+            try:
+                import json
+                with open(self.state_file, "r") as f:
+                    self.nodes = json.load(f)
+            except Exception:
+                self.nodes = {}
+
+    def _save(self) -> None:
+        if self.state_file:
+            try:
+                import json
+                self.state_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.state_file, "w") as f:
+                    json.dump(self.nodes, f)
+            except Exception:
+                pass
 
     def list_nodes(self) -> List[str]:
         return list(self.nodes.keys())
@@ -153,21 +175,25 @@ class MockHypervisorBackend(HypervisorBackend):
             "snapshots": {},
             "thin": thin
         }
+        self._save()
 
     def start(self, name: str) -> None:
         if name not in self.nodes:
             raise HypervisorError(f"Node '{name}' does not exist")
         self.nodes[name]["state"] = VMState.RUNNING
+        self._save()
 
     def stop(self, name: str, force: bool = False) -> None:
         if name not in self.nodes:
             raise HypervisorError(f"Node '{name}' does not exist")
         self.nodes[name]["state"] = VMState.SHUTOFF
+        self._save()
 
     def destroy(self, name: str) -> None:
         if name not in self.nodes:
             raise HypervisorError(f"Node '{name}' does not exist")
         del self.nodes[name]
+        self._save()
 
     def create_snapshot(self, name: str, snapshot_name: str) -> None:
         if name not in self.nodes:
@@ -176,6 +202,7 @@ class MockHypervisorBackend(HypervisorBackend):
         self.nodes[name]["snapshots"][snapshot_name] = {
             "state": self.nodes[name]["state"]
         }
+        self._save()
 
     def revert_snapshot(self, name: str, snapshot_name: str) -> None:
         if name not in self.nodes:
@@ -183,6 +210,7 @@ class MockHypervisorBackend(HypervisorBackend):
         if snapshot_name not in self.nodes[name]["snapshots"]:
             raise HypervisorError(f"Snapshot '{snapshot_name}' not found for '{name}'")
         self.nodes[name]["state"] = self.nodes[name]["snapshots"][snapshot_name]["state"]
+        self._save()
 
     def delete_snapshot(self, name: str, snapshot_name: str) -> None:
         if name not in self.nodes:
@@ -190,6 +218,7 @@ class MockHypervisorBackend(HypervisorBackend):
         if snapshot_name not in self.nodes[name]["snapshots"]:
             raise HypervisorError(f"Snapshot '{snapshot_name}' not found for '{name}'")
         del self.nodes[name]["snapshots"][snapshot_name]
+        self._save()
 
     def list_snapshots(self, name: str) -> List[str]:
         if name not in self.nodes:

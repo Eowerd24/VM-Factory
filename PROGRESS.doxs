@@ -38,6 +38,10 @@ Last updated: 2026-07-11
 - W-016 — Aligned `.doxs` and `.md` documentation files to contain the complete, project-specific operating rules and operational progress.
 - W-017 — Added a conservative repository [.gitignore](file:///home/sarge/Desktop/AI-Factory/VM-Factory/.gitignore) for local Python/runtime/cache/editor/secret-like artifacts and updated docs to reflect it.
 - W-018 — Updated operating documents ([AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md)/[AGENTS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.doxs), [FIRE-AWAY.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.md)/[FIRE-AWAY.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.doxs), [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md)/[README.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.doxs), [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md)/[PROGRESS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.doxs)) to reflect Python/Node packages and pytest unit tests correctly.
+- W-019 — Expanded the unit test suite in [tests/test_library.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/test_library.py) to achieve full coverage of the Python engine library including `CredentialManager`, `PayloadValidator`, `ReportParser`, `NodeLifecycleEngine`, and the CLI layer.
+- W-020 — Added mock state persistence to `MockHypervisorBackend` in [library/hypervisor.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/hypervisor.py) so mock VM topologies are saved to disk and persist across CLI invocations.
+- W-021 — Implemented the Typer-based command-line interface tool [nodectl.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/nodectl.py) at the repository root to expose all lifecycle verbs (`create`, `assign`, `collect`, `reset`, `destroy`, `list`, and `ledger`).
+- W-022 — Registered the `nodectl` command in [pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml) and verified CLI invocations under mock settings.
 
 ## Work In Progress
 None.
@@ -103,6 +107,11 @@ No active human-only blockers are currently recorded.
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` — passed
 
 ## Recent Work Log
+- 2026-07-11 — Implemented nodectl CLI and expanded engine unit tests
+  - Worker: Agent
+  - Summary: Built the Typer-based `nodectl` CLI tool supporting all lifecycle engine verbs. Added json state persistence for MockHypervisorBackend so CLI invocations retain mock state. Expanded the pytest test suite in `tests/test_library.py` to cover all library components and CLI verbs.
+  - Validation: `bash scripts/test.sh` passed.
+  - Git state: branch `agent/project-bootstrap-20260711`, local modifications uncommitted.
 - 2026-07-11 — Aligned operating docs, synchronized doxs/md files, and verified tests
   - Worker: Agent
   - Summary: Updated AGENTS, FIRE-AWAY, README, and PROGRESS files to include Python/Node setups, pytest unit tests, and standardized links (file:/// scheme, no backticks). Overwrote all `.doxs` counterparts to ensure exact equality.
@@ -129,12 +138,12 @@ No active human-only blockers are currently recorded.
 - Base branch at start: `agent/project-bootstrap-20260710`
 - HEAD commit at start: `a05af43` (`test: add canonical shell validation entrypoint`)
 - Working tree state at start: clean
-- Current HEAD commit: `8e35428`
-- Commit state for current work: uncommitted `.gitignore` and documentation changes present
+- Current HEAD commit: `fe39e00`
+- Commit state for current work: uncommitted CLI implementation, tests, and documentation changes present
 
 ## Exact Resume Point
 Resume from:
 1. run `bash scripts/test.sh`
 2. review status and run `git diff --check`
-3. commit the documentation alignment and `.gitignore` update
-4. proceed with validating on a real disposable VM target (W-019)
+3. commit the CLI tool, tests, and documentation updates
+4. proceed with validating the bootstrap flow on a real disposable VM target (W-019)

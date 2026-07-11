@@ -143,10 +143,32 @@ Repository hygiene:
 - `.gitignore` now excludes local virtualenvs, Python caches, pytest/coverage outputs, editor swap files, and `.env`-style local secret files.
 
 ## Running The Project
-No runnable application exists yet.
+The project provides the `nodectl` CLI tool to orchestrate node lifecycle operations.
+
+To run `nodectl` locally:
+
+```bash
+# Run with Python PYTHONPATH set to search local modules
+PYTHONPATH=. uv run python -m nodectl --help
+```
+
+CLI commands available:
+- `create`: Provision and bootstrap a new node from project config.
+- `assign`: Assign a workload repo to a node and inject credentials.
+- `collect`: Pull results from a node outbox directory and verify checksums.
+- `reset`: Stop, revert a node to its `sx-ready` snapshot, scrub credentials, and restart.
+- `destroy`: Permanently destroy a node, delete VM storage, and nuke credentials.
+- `list`: Show all active node manifests.
+- `ledger`: Query and stream the audit log ledger.
+
+To test the CLI lifecycle locally with mock backends, pass the `--mock` flag or set the `MOCK_SSH=True` environment variable:
+
+```bash
+PYTHONPATH=. uv run python -m nodectl create node-01 ./tests/project.yaml --mock
+PYTHONPATH=. uv run python -m nodectl list --mock
+```
 
 Current script status:
-
 - dry-run validation command: `L0_ALLOW_NON_ROOT=1 bash ./l0-server-vm.sh --dry-run`
 - intended privileged command on an Ubuntu target: `sudo bash ./l0-server-vm.sh --dry-run`
 - current state: executable for dry-run validation; real system mutation still expects an Ubuntu-like target environment with `useradd`, `ufw`, `systemctl`, `dpkg`, and related base tools available.
