@@ -15,6 +15,9 @@ echo "==> Shell tests"
 bash tests/test-l0-dry-run.sh
 bash tests/test-l0-core-args.sh
 
+echo "==> Python tests"
+PYTHONPATH=. uv run pytest
+
 echo "==> Diff hygiene"
 env HOME="${REPO_ROOT}" GIT_CONFIG_NOSYSTEM=1 git diff --check
 
