@@ -42,6 +42,9 @@ Last updated: 2026-07-11
 - W-020 — Added mock state persistence to `MockHypervisorBackend` in [library/hypervisor.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/hypervisor.py) so mock VM topologies are saved to disk and persist across CLI invocations.
 - W-021 — Implemented the Typer-based command-line interface tool [nodectl.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/nodectl.py) at the repository root to expose all lifecycle verbs (`create`, `assign`, `collect`, `reset`, `destroy`, `list`, and `ledger`).
 - W-022 — Registered the `nodectl` command in [pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml) and verified CLI invocations under mock settings.
+- W-023 — Bootstrapped the FastAPI + HTMX NodePanel frontend dashboard inside the [panel/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/panel/) directory, featuring a responsive, premium dark-mode layout with real-time HTMX-driven auto-polling nodes list and ledger audit trails.
+- W-024 — Implemented comprehensive route integration tests in [tests/test_panel.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/test_panel.py) verifying index rendering, form actions (`create`, `assign`, `collect`, `reset`, and `destroy`), and HTMX refresh fragments.
+- W-025 — Updated project dependencies in [pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml) to include FastAPI, Jinja2, Uvicorn, python-multipart, and HTTPX for test execution.
 
 ## Work In Progress
 None.
@@ -107,6 +110,11 @@ No active human-only blockers are currently recorded.
 - `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git status --short --branch` — passed
 
 ## Recent Work Log
+- 2026-07-11 — Bootstrapped NodePanel Web Frontend
+  - Worker: Agent
+  - Summary: Developed a FastAPI + HTMX based NodePanel web dashboard under `panel/` featuring real-time node auto-polling, dynamic ledger audits, and HTML form workflows for creation, assignment, collection, reset, and destruction. Created a complete test suite `tests/test_panel.py` covering all web routes and form integrations.
+  - Validation: `bash scripts/test.sh` passed.
+  - Git state: branch `agent/project-bootstrap-20260711`, local modifications uncommitted.
 - 2026-07-11 — Implemented nodectl CLI and expanded engine unit tests
   - Worker: Agent
   - Summary: Built the Typer-based `nodectl` CLI tool supporting all lifecycle engine verbs. Added json state persistence for MockHypervisorBackend so CLI invocations retain mock state. Expanded the pytest test suite in `tests/test_library.py` to cover all library components and CLI verbs.
@@ -138,12 +146,12 @@ No active human-only blockers are currently recorded.
 - Base branch at start: `agent/project-bootstrap-20260710`
 - HEAD commit at start: `a05af43` (`test: add canonical shell validation entrypoint`)
 - Working tree state at start: clean
-- Current HEAD commit: `fe39e00`
-- Commit state for current work: uncommitted CLI implementation, tests, and documentation changes present
+- Current HEAD commit: `41d64c3`
+- Commit state for current work: uncommitted NodePanel implementation, tests, and dependency updates present
 
 ## Exact Resume Point
 Resume from:
 1. run `bash scripts/test.sh`
 2. review status and run `git diff --check`
-3. commit the CLI tool, tests, and documentation updates
+3. commit the web panel, tests, and pyproject.toml changes
 4. proceed with validating the bootstrap flow on a real disposable VM target (W-019)

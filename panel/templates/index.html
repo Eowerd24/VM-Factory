@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NodePanel — Node Lifecycle Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>NodePanel</h1>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">AI Worker Factory & Node Lifecycle Control</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-success); display: flex; align-items: center; gap: 0.4rem;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--color-success);"></span>
+                Orchestrator Online
+            </span>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+        
+        <!-- Left Side: Nodes and Controls -->
+        <div>
+            <!-- Create Node Form -->
+            <div class="panel-card">
+                <h2>
+                    <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Create Lifecycle Node
+                </h2>
+                <form action="/nodes/create" method="post">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Node Name</label>
+                            <input type="text" id="name" name="name" placeholder="e.g. w-cliplib-01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="node_type">Node Type</label>
+                            <select id="node_type" name="node_type" required>
+                                {% for type in node_types %}
+                                    <option value="{{ type }}">{{ type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="image">Golden Image</label>
+                            <input type="text" id="image" name="image" value="gold-server-2404-v1" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vcpu">vCPUs</label>
+                            <input type="number" id="vcpu" name="vcpu" value="2" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ram_gb">RAM (GB)</label>
+                            <input type="number" id="ram_gb" name="ram_gb" value="4" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="disk_gb">Disk (GB)</label>
+                            <input type="number" id="disk_gb" name="disk_gb" value="20" min="5" required>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary">
+                            Provision Node
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Active Nodes Container -->
+            <div class="panel-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>
+                        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        Active Fleet
+                    </h2>
+                    <button class="btn btn-secondary btn-sm" hx-get="/nodes/refresh" hx-target="#node-list-swap">Refresh</button>
+                </div>
+                <div id="node-list-swap" hx-get="/nodes/refresh" hx-trigger="every 5s">
+                    {% include 'partials/node_list.html' %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Workload and Ledger -->
+        <div>
+            <!-- Assign Workload Form -->
+            <div class="panel-card">
+                <h2>
+                    <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    Assign Workload
+                </h2>
+                <form action="/nodes/assign" method="post">
+                    <div class="form-group">
+                        <label for="assign_node_name">Target Node</label>
+                        <select id="assign_node_name" name="name" required>
+                            <option value="">-- Select a Node --</option>
+                            {% for node in nodes %}
+                                <option value="{{ node.name }}">{{ node.name }} ({{ node.state.value }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="repo_url">Git Repository URL</label>
+                        <input type="url" id="repo_url" name="repo_url" placeholder="https://github.com/user/repo.git" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="credential_id">Credential Ref (Optional)</label>
+                        <input type="text" id="credential_id" name="credential_id" placeholder="cred:github-pat-01">
+                    </div>
+                    <div class="form-group">
+                        <label for="node_ip">Node IP Address</label>
+                        <input type="text" id="node_ip" name="node_ip" value="127.0.0.1" required>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Deploy & Start Task
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Ledger Audit Log -->
+            <div class="panel-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h2>
+                        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Audit Trail
+                    </h2>
+                    <button class="btn btn-secondary btn-sm" hx-get="/ledger/refresh" hx-target="#ledger-swap">Refresh</button>
+                </div>
+                <div id="ledger-swap" hx-get="/ledger/refresh" hx-trigger="every 5s">
+                    {% include 'partials/ledger_list.html' %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

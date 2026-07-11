@@ -1,0 +1,40 @@
+{% if not ledger %}
+    <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+        No audit log records available.
+    </div>
+{% else %}
+    <div class="ledger-table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Node</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in ledger %}
+                    <tr>
+                        <td class="timestamp-col code-font">{{ r.ts[11:19] }}</td>
+                        <td class="code-font">{{ r.actor }}</td>
+                        <td>
+                            <span class="action-badge action-{{ r.action.value.replace('.', '-') }}">
+                                {{ r.action.value }}
+                            </span>
+                        </td>
+                        <td class="code-font">{{ r.node }}</td>
+                        <td>
+                            {% if r.result == 'ok' %}
+                                <span style="color: var(--color-success); font-weight: 500;">ok</span>
+                            {% else %}
+                                <span style="color: var(--color-danger); font-weight: 500;">error</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

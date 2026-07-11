@@ -1,0 +1,67 @@
+{% if not nodes %}
+    <div style="text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
+        <svg style="width: 3rem; height: 3rem; margin-bottom: 1rem; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+        <p>No active nodes found in the fleet.</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Use the form above to provision a new node.</p>
+    </div>
+{% else %}
+    <div class="node-list-container">
+        {% for node in nodes %}
+            <div class="node-card state-{{ node.state.value }}">
+                <div>
+                    <div class="node-header">
+                        <span class="node-name">{{ node.name }}</span>
+                        <span class="node-type">{{ node.type.value }}</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="node-state-badge badge-{{ node.state.value }}">
+                            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: currentColor;"></span>
+                            {{ node.state.value }}
+                        </span>
+                    </div>
+
+                    <div class="node-stats">
+                        <div class="stat-item">
+                            <span class="stat-val">{{ node.resources.vcpu }}</span>
+                            <span>vCPUs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val">{{ node.resources.ram_gb }}G</span>
+                            <span>RAM</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val">{{ node.resources.disk_gb }}G</span>
+                            <span>Disk</span>
+                        </div>
+                    </div>
+
+                    {% if node.repo %}
+                        <div style="font-size: 0.8rem; margin-bottom: 0.75rem; background-color: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.03);">
+                            <span style="color: var(--text-secondary);">Repo:</span>
+                            <span class="code-font" style="color: var(--color-accent-1); word-break: break-all;">{{ node.repo }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="node-footer">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                        Expires: <span class="code-font" style="color: var(--text-primary);">{{ node.expires[:10] }}</span>
+                    </span>
+                    <div class="node-actions">
+                        <form action="/nodes/reset/{{ node.name }}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" title="Revert node to sx-ready snapshot & clear PAT">
+                                Reset
+                            </button>
+                        </form>
+                        <form action="/nodes/destroy/{{ node.name }}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-danger" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" title="Permanently destroy VM & storage">
+                                Destroy
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
