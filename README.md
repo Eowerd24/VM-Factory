@@ -5,10 +5,10 @@
 Current status: bootstrap/prototype. The repository is runnable for local development and mock-backed validation, but privileged Ubuntu bootstrap behavior and real hypervisor-backed lifecycle flows are still only partially verified.
 
 ## Read First
-- [AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md) / [AGENTS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.doxs)
-- [FIRE-AWAY.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.md) / [FIRE-AWAY.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.doxs)
-- [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md) / [PROGRESS.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.doxs)
-- [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md) / [README.doxs](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.doxs)
+- [AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md) / 
+- [FIRE-AWAY.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.md)
+- [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md)
+- [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md) /
 - [ai-worker-factory-plan.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md)
 - [factory-panel-convergence.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md)
 
