@@ -28,19 +28,11 @@ Current verified structure:
 
 ```text
 .
-├── AGENTS.docx
-├── AGENTS.doxs
 ├── AGENTS.md
 ├── .gitignore
-├── FIRE-AWAY.docx
-├── FIRE-AWAY.doxs
 ├── FIRE-AWAY.md
-├── PROGRESS.doxs
 ├── PROGRESS.md
-├── PROGRESS.md.docx
-├── README.doxs
 ├── README.md
-├── README.md.docx
 ├── nodectl.py
 ├── ai-worker-factory-plan.md
 ├── factory-panel-convergence.md
