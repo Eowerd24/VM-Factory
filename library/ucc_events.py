@@ -6,7 +6,7 @@ unchanged read path; this is additive.
 
 VM-Factory has no canonical `node_`/`act_` ULID ids yet (`ucc.node` and
 friends are still queued per UCC-Standards §17) — node names and actor
-strings are the only identity that exists today. `_deterministic_id` derives
+strings are the only identity that exists today. `deterministic_id` derives
 a stable, correctly-formatted-but-non-canonical id from those strings so
 events about "the same" node/actor correlate consistently across the
 stream. Once real canonical ids land, replace this with the genuine id.
@@ -32,7 +32,7 @@ def ucc_now_iso() -> str:
     return now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
 
 
-def _deterministic_id(prefix: str, seed: str) -> str:
+def deterministic_id(prefix: str, seed: str) -> str:
     if prefix not in ID_PREFIXES:
         raise ValueError(f"Unknown id prefix {prefix!r}.")
     digest = hashlib.sha256(seed.encode("utf-8")).digest()
@@ -64,8 +64,8 @@ def build_event(*, event_type: str, node_name: str, actor: str,
         "occurred_at": now,
         "recorded_at": now,
         "producer": {"module_id": MODULE_ID, "instance_id": instance_id},
-        "actor": {"kind": "human", "id": _deterministic_id("act", f"actor:{actor}")},
-        "subject": {"kind": "node", "id": _deterministic_id("node", f"node:{node_name}")},
+        "actor": {"kind": "human", "id": deterministic_id("act", f"actor:{actor}")},
+        "subject": {"kind": "node", "id": deterministic_id("node", f"node:{node_name}")},
         "operation_id": operation_id,
         "request_id": new_id("req"),
         "correlation_id": new_id("corr"),

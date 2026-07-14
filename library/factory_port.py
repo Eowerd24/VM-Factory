@@ -23,8 +23,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 from library.engine import EngineError, NodeLifecycleEngine
+from library.idempotency_store import IdempotencyStore, request_fingerprint
 from library.manifest import ManifestManager
 from library.models import NodeState
+from library.ucc_events import deterministic_id, ucc_now_iso
+from ucc_contracts import new_id, validate_document
+from ucc_contracts.idempotency import IdempotencyOutcome, evaluate_idempotency, idempotency_conflict_problem
 from ucc_contracts.ports import (
     CollectHandbackRequest, EligibilityRequest,  # re-exported for callers; unused directly here
     ExecutionRequestEnvelope, FactoryPort, PortResult, RefusalCode, ReserveNodeRequest,
@@ -95,12 +99,76 @@ class VMFactoryFactoryPort:
         name = request.get("name")
         if not name:
             return _validation_refusal("missing required field: name")
+        idempotency_key = request.get("idempotency_key")
+        if idempotency_key:
+            return self._reset_node_idempotent(name, idempotency_key)
         try:
             manifest = self.engine.reset(name)
         except EngineError as exc:
             return PortResult(ok=False, disposition="failed", message=str(exc), retryable=False)
         return PortResult(ok=True, disposition="completed",
                           value={"name": manifest.name, "state": manifest.state.value})
+
+    def _reset_node_idempotent(self, name: str, idempotency_key: str) -> PortResult:
+        """M-b (D2): opt-in idempotent replay for reset_node, gated on
+        `request["idempotency_key"]` being present — the non-idempotent path
+        above is unchanged for callers that don't pass one. Only a definite
+        success is stored as a replay candidate; a failed reset is safe and
+        cheap to re-attempt (it re-checks engine state and fails the same
+        way), so it is not idempotency-tracked — `unknown` is therefore
+        never a stored, replayable disposition here either."""
+        store = IdempotencyStore(self.engine.state_dir / "idempotency.db")
+        payload = {"name": name}
+        fingerprint = request_fingerprint(payload)
+        stored = store.get(idempotency_key)
+        outcome = evaluate_idempotency(idempotency_key, fingerprint, stored)
+
+        request_id = new_id("req")
+        operation_id = new_id("op")
+        correlation_id = new_id("corr")
+
+        if outcome == IdempotencyOutcome.REPLAY:
+            return PortResult(ok=True, disposition="completed", value=stored.result)
+
+        if outcome == IdempotencyOutcome.CONFLICT:
+            problem = idempotency_conflict_problem(
+                request_id=request_id, operation_id=operation_id, correlation_id=correlation_id)
+            return PortResult(ok=False, disposition="refused",
+                              refusal_code=RefusalCode.IDEMPOTENCY_CONFLICT,
+                              message=problem["message"], retryable=False)
+
+        # NEW: build + validate the request envelope, run the real op, build
+        # + validate the result envelope, store the exact value we return
+        # (so replay is verbatim), return it.
+        request_doc = {
+            "schema": "ucc.request", "schema_version": 1,
+            "request_id": request_id, "operation_id": operation_id, "correlation_id": correlation_id,
+            "causation_id": None, "idempotency_key": idempotency_key,
+            "request_fingerprint": fingerprint, "requested_at": ucc_now_iso(),
+            "requested_by": new_id("act"), "operation_type": "node.reset", "payload": payload,
+        }
+        validate_document("request", request_doc)
+
+        try:
+            manifest = self.engine.reset(name)
+        except EngineError as exc:
+            # Not stored: a definite failure is not a replay candidate.
+            return PortResult(ok=False, disposition="failed", message=str(exc), retryable=False)
+
+        result_doc = {
+            "schema": "ucc.result", "schema_version": 1,
+            "result_id": new_id("res"), "request_id": request_id, "operation_id": operation_id,
+            "correlation_id": correlation_id, "completed_at": ucc_now_iso(),
+            "disposition": "completed",
+            "resource": {"kind": "node", "id": deterministic_id("node", f"node:{name}")},
+            "warnings": [],
+        }
+        validate_document("result", result_doc)
+        value = {"name": manifest.name, "state": manifest.state.value, "result": result_doc}
+        store.put(idempotency_key=idempotency_key, fingerprint=fingerprint,
+                 operation_type="node.reset", disposition="completed",
+                 result=value, created_at=result_doc["completed_at"])
+        return PortResult(ok=True, disposition="completed", value=value)
 
     def quarantine_node(self, request: dict) -> PortResult:
         return _dependency_unavailable()
