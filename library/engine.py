@@ -29,15 +29,16 @@ class NodeLifecycleEngine:
         # Paths
         self.nodes_dir = state_dir / "nodes"
         self.ledger_file = state_dir / "ledger" / "audit.jsonl"
+        self.ucc_events_file = state_dir / "events" / "vm-factory.jsonl"
         self.credentials_db = state_dir / "credentials.db"
         self.inbox_dir = state_dir / "inbox"
-        
+
         # Backend components
         self.hypervisor = hypervisor or MockHypervisorBackend()
         self.transport = transport or MockTransportBackend()
-        
+
         # Managers
-        self.ledger = LedgerManager(self.ledger_file)
+        self.ledger = LedgerManager(self.ledger_file, ucc_events_file=self.ucc_events_file)
         self.credentials = CredentialManager(self.credentials_db)
 
     def _get_manifest_path(self, node_name: str) -> Path:

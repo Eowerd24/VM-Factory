@@ -2,8 +2,15 @@
 git-clone-assign path must stay confined to the standalone legacy site and
 never gain a second caller (e.g. a future FactoryPort adapter bypassing
 typed execution). No trusted-path arbitrary shell (UCC-Standards §15;
-roadmap §3 G1, §8 "VMF ssh host-key + string-exec fence")."""
-import re
+roadmap §3 G1, §8 "VMF ssh host-key + string-exec fence").
+
+Uses AST call-site detection, not text/regex matching: an earlier version
+matched the bare substring ".assign(" anywhere in a file, which false-
+positived on this fence's own explanatory prose the moment another module
+(library/factory_port.py, G3) documented the fence in its docstring. Only
+actual `X.assign(...)` / `X.run_cmd(...)` call expressions count.
+"""
+import ast
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -30,11 +37,19 @@ def _python_files():
         yield path
 
 
+def _called_attrs(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return {
+        node.func.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+
+
 def test_run_cmd_confined_to_legacy_assign_path():
     offenders = []
     for path in _python_files():
-        text = path.read_text(encoding="utf-8")
-        if re.search(r"\.run_cmd\(", text) and path not in ALLOWED_RUN_CMD_CALLERS:
+        if "run_cmd" in _called_attrs(path) and path not in ALLOWED_RUN_CMD_CALLERS:
             offenders.append(str(path.relative_to(REPO_ROOT)))
     assert not offenders, (
         f"raw string-exec run_cmd() called outside the fenced legacy path: {offenders}. "
@@ -45,8 +60,7 @@ def test_run_cmd_confined_to_legacy_assign_path():
 def test_engine_assign_confined_to_standalone_entry_points():
     offenders = []
     for path in _python_files():
-        text = path.read_text(encoding="utf-8")
-        if re.search(r"\.assign\(", text) and path not in ALLOWED_ASSIGN_CALLERS:
+        if "assign" in _called_attrs(path) and path not in ALLOWED_ASSIGN_CALLERS:
             offenders.append(str(path.relative_to(REPO_ROOT)))
     assert not offenders, (
         f"NodeLifecycleEngine.assign() (git-clone-assign legacy path) called outside "

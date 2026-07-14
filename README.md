@@ -188,6 +188,16 @@ Then open `http://127.0.0.1:8000`.
 
 The panel automatically falls back to mock backends when `MOCK_SSH=true` or when `/var/run/libvirt/libvirt-sock` is unavailable.
 
+## UCC conformance
+
+Conforms to **ucc-contracts 0.1.0** (2026-07-13 snapshot), vendored at
+`third_party/ucc-contracts/` (schemas, lifecycle transition tables, ID/hash/path
+primitives — no domain code). `tests/contracts/` asserts this repo's own
+(de)serialization and validation matches the pinned contracts exactly;
+bumping the vendored copy is deliberate and version-gated, never silent.
+Every ledger write also dual-writes a `ucc.event` alongside the legacy
+`LedgerManager` audit entry.
+
 ## Testing
 The canonical validation suite is:
 
