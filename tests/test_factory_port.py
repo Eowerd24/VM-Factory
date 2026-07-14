@@ -73,6 +73,8 @@ def test_get_node_health_missing_node_refuses_without_fabricating(engine):
     result = port.get_node_health({"name": "does-not-exist"})
     assert result.ok is False
     assert result.disposition == "refused"
+    # ucc-contracts v0.2.0 (D6): typed now, not refusal_code=None.
+    assert result.refusal_code == RefusalCode.NODE_NOT_FOUND
 
 
 def test_get_node_health_missing_name_field_is_validation_error(engine):

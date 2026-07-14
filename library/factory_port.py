@@ -113,11 +113,10 @@ class VMFactoryFactoryPort:
         try:
             manifest = ManifestManager.load(manifest_path)
         except FileNotFoundError:
-            # No partitioned FACTORY_PORT_CODES entry fits "node manifest not
-            # found" (the registry covers allocation/execution lookups, not
-            # a raw node-by-name query) — a real gap, flagged here rather
-            # than silently reusing an unrelated code.
-            return PortResult(ok=False, disposition="refused", refusal_code=None,
+            # ucc-contracts v0.2.0 added NODE_NOT_FOUND to FACTORY_PORT_CODES
+            # (D6) specifically for this case — a raw node-by-name query with
+            # no manifest, distinct from ALLOCATION_NOT_FOUND/EXECUTION_NOT_FOUND.
+            return PortResult(ok=False, disposition="refused", refusal_code=RefusalCode.NODE_NOT_FOUND,
                               message=f"no manifest for node '{name}'", retryable=False)
         try:
             vm_state = self.engine.hypervisor.get_state(name)
