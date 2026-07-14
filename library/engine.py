@@ -121,6 +121,16 @@ class NodeLifecycleEngine:
         """Verb: assign
 
         Assigns a Git repository workload to the node and injects credentials.
+
+        STANDALONE-ONLY / LEGACY (UCC G1 security floor, UCC-Standards §15):
+        the guest-side `git clone` below is raw string exec over
+        `TransportBackend.run_cmd(cmd: str)`, not a typed operation. It is
+        reachable only from the standalone CLI/panel entry points
+        (nodectl.py, panel/main.py) and MUST NOT be wired behind a future
+        FactoryPort adapter. `test_run_cmd_confined_to_legacy_assign_path`
+        in tests/ guards this. Replacing it with typed NodeAllocation +
+        execution acceptance is tracked separately (roadmap §4C "Typed
+        execution + allocation"), not part of this fence.
         """
         manifest_path = self._get_manifest_path(name)
         manifest = ManifestManager.load(manifest_path)
