@@ -91,6 +91,9 @@ def test_node_lifecycle_routes():
     resp_destroy = client.post("/nodes/destroy/panel-test-node")
     assert resp_destroy.status_code in (200, 303)
 
-    # Verify node is gone
+    # M-c: destruction preserves a tombstone (locked invariant, UCC-Standards
+    # §15) — the node stays listed, now showing state=retired, rather than
+    # vanishing from history.
     resp_nodes3 = client.get("/nodes/refresh")
-    assert "panel-test-node" not in resp_nodes3.text
+    assert "panel-test-node" in resp_nodes3.text
+    assert "badge-retired" in resp_nodes3.text

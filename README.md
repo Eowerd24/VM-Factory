@@ -5,21 +5,21 @@
 Current status: bootstrap/prototype. The repository is runnable for local development and mock-backed validation, but privileged Ubuntu bootstrap behavior and real hypervisor-backed lifecycle flows are still only partially verified.
 
 ## Read First
-- [AGENTS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/AGENTS.md) / 
-- [FIRE-AWAY.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/FIRE-AWAY.md)
-- [PROGRESS.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/PROGRESS.md)
-- [README.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/README.md) /
-- [ai-worker-factory-plan.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md)
-- [factory-panel-convergence.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md)
+- [AGENTS.md](AGENTS.md) /
+- [FIRE-AWAY.md](FIRE-AWAY.md)
+- [PROGRESS.md](PROGRESS.md)
+- [README.md](README.md) /
+- [ai-worker-factory-plan.md](ai-worker-factory-plan.md)
+- [factory-panel-convergence.md](factory-panel-convergence.md)
 
 ## What The Project Does
 The repository currently implements these layers:
 
-- L0 shell bootstrap for Ubuntu server golden-image preparation via [l0-server-vm.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh) and [lib-l0-core.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh)
-- A Python engine under [library/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/) for manifests, ledgering, credentials, transport, hypervisor control, payload validation, reporting, and lifecycle verbs
-- A Typer CLI in [nodectl.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/nodectl.py)
-- A FastAPI + HTMX dashboard in [panel/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/panel/) for node creation, assignment, collection, reset, destruction, and ledger views
-- Shell and Python validation under [tests/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/) with a canonical runner at [scripts/test.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/scripts/test.sh)
+- L0 shell bootstrap for Ubuntu server golden-image preparation via [l0-server-vm.sh](l0-server-vm.sh) and [lib-l0-core.sh](lib-l0-core.sh)
+- A Python engine under [library/](library/) for manifests, ledgering, credentials, transport, hypervisor control, payload validation, reporting, and lifecycle verbs
+- A Typer CLI in [nodectl.py](nodectl.py)
+- A FastAPI + HTMX dashboard in [panel/](panel/) for node creation, assignment, collection, reset, destruction, and ledger views
+- Shell and Python validation under [tests/](tests/) with a canonical runner at [scripts/test.sh](scripts/test.sh)
 
 Planning documents still define the broader target architecture, especially around real hypervisor workflows, snapshot policy, credential boundaries, and convergence between the factory engine and the panel wrapper.
 
@@ -72,18 +72,18 @@ Current verified structure:
 
 File roles:
 
-- [ai-worker-factory-plan.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/ai-worker-factory-plan.md): primary product and architecture plan
-- [factory-panel-convergence.md](file:///home/sarge/Desktop/AI-Factory/VM-Factory/factory-panel-convergence.md): convergence plan between the factory and a panel-style wrapper
-- [lib-l0-core.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh): shared L0 baseline library sourced by the VM wrapper
-- [l0-server-vm.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/l0-server-vm.sh): current Bash VM golden image builder
-- [nodectl.py](file:///home/sarge/Desktop/AI-Factory/VM-Factory/nodectl.py): Typer-based command-line interface tool
-- [library/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/library/): Python engine modules for manifests, hypervisor operations, credentials, ledgering, payload validation, reporting, and transport
-- [panel/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/panel/): FastAPI + HTMX dashboard web app code, templates, and styles
-- [scripts/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/scripts/): unified repository-local validation script
-- [tests/](file:///home/sarge/Desktop/AI-Factory/VM-Factory/tests/): shell and Python tests covering dry-run shell flows, library behavior, and panel routes
-- [.gitignore](file:///home/sarge/Desktop/AI-Factory/VM-Factory/.gitignore): repository-local ignore rules for disposable runtime, cache, coverage, editor, and secret-like files
-- [pyproject.toml](file:///home/sarge/Desktop/AI-Factory/VM-Factory/pyproject.toml) and [uv.lock](file:///home/sarge/Desktop/AI-Factory/VM-Factory/uv.lock): Python package configuration and lockfile managed by `uv`
-- [package.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package.json) and [package-lock.json](file:///home/sarge/Desktop/AI-Factory/VM-Factory/package-lock.json): Node.js dependency manifests for repository-local CLI tooling
+- [ai-worker-factory-plan.md](ai-worker-factory-plan.md): primary product and architecture plan
+- [factory-panel-convergence.md](factory-panel-convergence.md): convergence plan between the factory and a panel-style wrapper
+- [lib-l0-core.sh](lib-l0-core.sh): shared L0 baseline library sourced by the VM wrapper
+- [l0-server-vm.sh](l0-server-vm.sh): current Bash VM golden image builder
+- [nodectl.py](nodectl.py): Typer-based command-line interface tool
+- [library/](library/): Python engine modules for manifests, hypervisor operations, credentials, ledgering, payload validation, reporting, and transport
+- [panel/](panel/): FastAPI + HTMX dashboard web app code, templates, and styles
+- [scripts/](scripts/): unified repository-local validation script
+- [tests/](tests/): shell and Python tests covering dry-run shell flows, library behavior, and panel routes
+- [.gitignore](.gitignore): repository-local ignore rules for disposable runtime, cache, coverage, editor, and secret-like files
+- [pyproject.toml](pyproject.toml) and [uv.lock](uv.lock): Python package configuration and lockfile managed by `uv`
+- [package.json](package.json) and [package-lock.json](package-lock.json): Node.js dependency manifests for repository-local CLI tooling
 
 ## Requirements
 Current verified requirements:
@@ -188,6 +188,39 @@ Then open `http://127.0.0.1:8000`.
 
 The panel automatically falls back to mock backends when `MOCK_SSH=true` or when `/var/run/libvirt/libvirt-sock` is unavailable.
 
+## UCC conformance
+
+Conforms to **ucc-contracts v0.2.0** (git tag, ucc-contracts is now its own repo), vendored at
+`third_party/ucc-contracts/` (schemas, lifecycle transition tables, ID/hash/path
+primitives — no domain code). `tests/contracts/` asserts this repo's own
+(de)serialization and validation matches the pinned contracts exactly;
+bumping the vendored copy is deliberate and version-gated, never silent.
+Every ledger write also dual-writes a `ucc.event` alongside the legacy
+`LedgerManager` audit entry.
+
+## Standalone status and limitations
+
+This is a **UCC Stage-1 conformant standalone tool**. It runs and is tested on its own.
+It is *not* the UCC product and does not integrate with the other UCC repos yet.
+
+- **Shared contracts:** pinned to `ucc-contracts v0.2.0` (vendored under
+  `third_party/ucc-contracts/`, export set per its VENDOR-MANIFEST.md). Never edited locally.
+- **Placeholder entity IDs (D4):** `ucc.event` records carry `subject.id` values that are
+  **deterministic sha256-derived placeholders**, not canonical prefixed ULIDs. Real IDs
+  arrive with the record layer in Stage 2. **Do not build external references on them.**
+- **Events are dual-written:** the legacy ledger *and* a schema-conformant `ucc.event`
+  stream. Neither replaces the other yet.
+- **`producer_sequence`** is per-producer, not globally ordered, and not race-safe under
+  concurrent writers (matching the legacy ledgers).
+- **Fenced paths:** direct-infrastructure and shell paths are retained for standalone use
+  only, unreachable from any port (AST call-site tests). Not an integration surface.
+- **Domain schemas are not authored yet** (~26 records; standards reference §17). They gate
+  the vertical proof, not this baseline.
+- **`FactoryPort`: 3 of 10 methods are real** (`list_eligible_nodes`, `get_node_health`,
+  `reset_node`); the rest refuse `DEPENDENCY_UNAVAILABLE`.
+- **`NodeState` is still one overloaded enum** internally; the axis split is Stage 2.
+- **This repo's `nodectl.py` CLI is a different tool** from the `nodectl` repo.
+
 ## Testing
 The canonical validation suite is:
 
@@ -208,6 +241,7 @@ env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git diff --check
 
 Coverage today:
 
+- fork-gate remediation baseline: **98 Python tests passed**
 - shell syntax validation for the L0 scripts
 - non-root dry-run shell validation
 - shell argument parser coverage
@@ -234,7 +268,7 @@ Status: unimplemented.
 ## Troubleshooting
 - If `git` tries to read system config unexpectedly, use `env HOME=$PWD GIT_CONFIG_NOSYSTEM=1 git ...`
 - If the panel cannot reach libvirt locally, set `MOCK_SSH=true` to force the mock backend
-- If `l0-server-vm.sh` fails, verify that [lib-l0-core.sh](file:///home/sarge/Desktop/AI-Factory/VM-Factory/lib-l0-core.sh) exists and rerun the documented dry-run path first
+- If `l0-server-vm.sh` fails, verify that [lib-l0-core.sh](lib-l0-core.sh) exists and rerun the documented dry-run path first
 - If a workflow claims real bootstrap success, require the exact command and target environment; local dry-run validation is not equivalent to a privileged Ubuntu mutation run
 
 ## Security Notes

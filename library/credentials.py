@@ -16,10 +16,8 @@ class VaultAdapter:
     @staticmethod
     def get_secret(vault_ref: str) -> str:
         """Retrieves the actual secret value based on a reference string."""
-        # Simple lookup strategy:
-        # 1. If starts with env: lookup environment variable
-        # 2. If mock: return placeholder
-        # 3. Else fallback to environment lookup for safety in this version
+        # Fail-closed lookup strategy: only explicit env: and mock: references
+        # resolve; every unprefixed or unknown reference raises below.
         if vault_ref.startswith("env:"):
             env_var = vault_ref.split(":", 1)[1]
             val = os.environ.get(env_var)
@@ -27,15 +25,18 @@ class VaultAdapter:
                 raise CredentialError(f"Environment variable '{env_var}' not found for ref '{vault_ref}'")
             return val
         elif vault_ref.startswith("mock:"):
+            # Explicit mock backend only. Token fabrication is impossible for
+            # any reference that is not explicitly marked mock.
             return f"ghp_mock_token_{vault_ref.split(':', 1)[1]}"
-        
-        # Fallback to direct environment lookup
-        val = os.environ.get(vault_ref)
-        if val:
-            return val
-            
-        # Return a safe dummy value for local testing if not found
-        return f"ghp_test_token_for_{vault_ref.replace('/', '_')}"
+
+        # Fail closed. An unresolved or unprefixed reference must refuse, never
+        # fabricate a dummy token or silently fall back to the ambient
+        # environment (locked: "fail-open is unacceptable"; SPEC-001 §K.3.10,
+        # §A.3.4). The caller receives a typed CredentialError.
+        raise CredentialError(
+            f"Unresolved vault reference '{vault_ref}'. Use an explicit 'env:' "
+            f"or 'mock:' prefix; refusing rather than fabricating a token."
+        )
 
 
 class CredentialManager:

@@ -10,9 +10,10 @@ class TransportError(Exception):
     pass
 
 class TransportBackend:
-    """Interface for guest VM interaction (SSH/SCP)."""
+    """Legacy standalone guest transport; raw string exec is port-fenced."""
 
     def run_cmd(self, ip: str, cmd: str, user: str = "admin", key_path: Optional[Path] = None) -> Tuple[int, str, str]:
+        """FENCED raw-command surface for legacy engine.assign only."""
         raise NotImplementedError()
 
     def push(self, ip: str, local_path: Path, remote_path: Path, user: str = "admin", key_path: Optional[Path] = None) -> None:
@@ -25,13 +26,28 @@ class TransportBackend:
         raise NotImplementedError()
 
 
+def _default_known_hosts_path() -> Path:
+    """Resolve the pinned known_hosts location: VM_FACTORY_KNOWN_HOSTS env var,
+    else <NODEFACTORY_STATE>/ssh/known_hosts (locked security floor: no
+    UserKnownHostsFile=/dev/null, no AutoAddPolicy/accept-new; UCC-Standards
+    §15)."""
+    override = os.environ.get("VM_FACTORY_KNOWN_HOSTS")
+    if override:
+        return Path(override).expanduser()
+    state_dir = Path(os.environ.get("NODEFACTORY_STATE", "~/.local/state/nodefactory")).expanduser()
+    return state_dir / "ssh" / "known_hosts"
+
+
 class SSHTransportBackend(TransportBackend):
     """Real transport using system ssh/scp subprocesses."""
 
+    def __init__(self, known_hosts_path: Optional[Path] = None):
+        self.known_hosts_path = Path(known_hosts_path) if known_hosts_path else _default_known_hosts_path()
+
     def _get_ssh_opts(self, key_path: Optional[Path] = None) -> List[str]:
         opts = [
-            "-o", "StrictHostKeyChecking=accept-new",
-            "-o", "UserKnownHostsFile=/dev/null",  # avoid known_hosts pollution
+            "-o", "StrictHostKeyChecking=yes",
+            "-o", f"UserKnownHostsFile={self.known_hosts_path}",
             "-o", "ConnectTimeout=5"
         ]
         if key_path:

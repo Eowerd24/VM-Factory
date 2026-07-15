@@ -29,15 +29,16 @@ class NodeLifecycleEngine:
         # Paths
         self.nodes_dir = state_dir / "nodes"
         self.ledger_file = state_dir / "ledger" / "audit.jsonl"
+        self.ucc_events_file = state_dir / "events" / "vm-factory.jsonl"
         self.credentials_db = state_dir / "credentials.db"
         self.inbox_dir = state_dir / "inbox"
-        
+
         # Backend components
         self.hypervisor = hypervisor or MockHypervisorBackend()
         self.transport = transport or MockTransportBackend()
-        
+
         # Managers
-        self.ledger = LedgerManager(self.ledger_file)
+        self.ledger = LedgerManager(self.ledger_file, ucc_events_file=self.ucc_events_file)
         self.credentials = CredentialManager(self.credentials_db)
 
     def _get_manifest_path(self, node_name: str) -> Path:
@@ -121,6 +122,16 @@ class NodeLifecycleEngine:
         """Verb: assign
 
         Assigns a Git repository workload to the node and injects credentials.
+
+        STANDALONE-ONLY / LEGACY (UCC G1 security floor, UCC-Standards §15):
+        the guest-side `git clone` below is raw string exec over
+        `TransportBackend.run_cmd(cmd: str)`, not a typed operation. It is
+        reachable only from the standalone CLI/panel entry points
+        (nodectl.py, panel/main.py) and MUST NOT be wired behind a future
+        FactoryPort adapter. `test_run_cmd_confined_to_legacy_assign_path`
+        in tests/ guards this. Replacing it with typed NodeAllocation +
+        execution acceptance is tracked separately (roadmap §4C "Typed
+        execution + allocation"), not part of this fence.
         """
         manifest_path = self._get_manifest_path(name)
         manifest = ManifestManager.load(manifest_path)
@@ -294,10 +305,12 @@ class NodeLifecycleEngine:
         
         return manifest
 
-    def destroy(self, name: str) -> None:
+    def destroy(self, name: str) -> NodeManifest:
         """Verb: destroy
 
-        Permanently destroys the VM, deletes its storage, and retires the credential.
+        Permanently destroys the VM, deletes its storage, and retires the
+        credential. The node manifest itself is preserved as a tombstone,
+        not deleted (locked invariant: destruction preserves tombstones).
         """
         manifest_path = self._get_manifest_path(name)
         manifest = ManifestManager.load(manifest_path)
@@ -322,13 +335,14 @@ class NodeLifecycleEngine:
             except Exception as e:
                 raise EngineError(f"Failed to nuke credential '{manifest.credential_ref}': {e}")
 
-        # 3. Transition to retired and cleanup manifest
+        # 3. Transition to retired and preserve the manifest as a tombstone
+        # (M-c, locked invariant: destruction preserves tombstones + history
+        # — UCC-Standards §15). Previously this unlinked the manifest file
+        # and removed the node's directory; the retired manifest is now the
+        # tombstone, left in place at the same path so node history stays
+        # queryable (e.g. `nodectl list --mock` still shows retired nodes).
         manifest = ManifestManager.transition(manifest, NodeState.RETIRED)
-        if manifest_path.exists():
-            manifest_path.unlink()
-            # Clean directory if empty
-            if not any(manifest_path.parent.iterdir()):
-                manifest_path.parent.rmdir()
+        ManifestManager.save(manifest, manifest_path)
 
         self.ledger.append(
             actor=self.actor,
@@ -337,3 +351,4 @@ class NodeLifecycleEngine:
             params={"event": "node_destroyed"},
             result="ok"
         )
+        return manifest

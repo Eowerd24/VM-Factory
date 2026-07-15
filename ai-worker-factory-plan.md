@@ -3,6 +3,15 @@
 
 *Prepared July 2026 · Target: solo developer, homelab, multiple AI coding subscriptions, disposable Ubuntu VMs*
 
+> **M-c reconciliation note (2026-07-15):** this 800+-line product plan predates the UCC Stage-1
+> conformance work and describes a larger standalone-VM-Factory vision, not the narrow-fork scope.
+> Not fully re-verified line-by-line against current repo state (out of proportion for this pass) —
+> spot-checked for direct contradictions with the locked baseline and found none beyond generic
+> staleness risk (a plan this size inevitably drifts from the code over time; verify any specific
+> claim against the actual code before relying on it, don't assume the plan is current). Current,
+> UCC-specific guidance for this repo lives in `AGENTS.md` §0–§4; this document is background
+> product intent layered underneath it, not a substitute.
+
 ---
 
 ## 0. Executive Summary
