@@ -1,6 +1,20 @@
 # Factory ⇄ NodePanel — Convergence Roadmap
 *Comparing the AI Worker Factory plan against the real nodepanel repo, and the path to one system. The factory is the product; the panel is one wrapper on it.*
 
+> **M-c reconciliation note (2026-07-15):** this "converge into one system" plan is broader than,
+> and predates, the UCC Stage-1 narrow-fork scope — repo convergence is explicitly Stage-2-or-later
+> under the locked roadmap (`AGENTS.md` §1.1/§4). Treat this as background intent, not authorization
+> to merge repos now. Two concrete things below are now stale, not just superseded-later:
+> - **"nodepanel"** throughout this doc refers to what is now the `nodectl` repo (D5 rename, this
+>   session) — read every "nodepanel" reference here as "nodectl."
+> - **§ "Repo hygiene" / "immediate action: `nodepanel.db` + `uploads/` leave git"** is substantially
+>   done already, on the `nodectl` side, this session's M-c: `uploads/` untracked (`git rm --cached`,
+>   content stays on disk), and local-dev runtime state (including the SQLite db) now isolates under
+>   a git-ignored `.ucc-dev/` instead of the repo root. See `nodectl/AGENTS.md` §3 and
+>   `nodectl/COMPONENT-MAP.md`. The rest of this document (state-dir separation design, credential
+>   rotation, broader convergence plan) has not been re-verified line-by-line against current
+>   `nodectl`/VM-Factory state — don't treat it as current without checking.
+
 ---
 
 ## 1. Comparison: what exists vs what the factory adds

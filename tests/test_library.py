@@ -361,8 +361,12 @@ def test_node_lifecycle_engine(temp_dir):
     assert records[5].action == LedgerAction.NODE_RESET
 
     # 6. Verb: Destroy
-    engine.destroy(node_name)
-    assert not manifest_file.exists()
+    tombstone = engine.destroy(node_name)
+    # M-c: destruction preserves a tombstone (the retired manifest), it does
+    # not delete the manifest file — locked invariant, UCC-Standards §15.
+    assert manifest_file.exists()
+    assert tombstone.state == NodeState.RETIRED
+    assert ManifestManager.load(manifest_file).state == NodeState.RETIRED
     assert node_name not in engine.hypervisor.list_nodes()
 
     cred = engine.credentials.get("cred:test-pat")

@@ -1,5 +1,12 @@
 # FIRE-AWAY.md
 
+> **M-c reconciliation note (2026-07-15):** reviewed against the locked UCC Stage-1 baseline.
+> No content here contradicts it — this file's autonomy/stop-conditions contract is a repo-specific
+> layer on top of `AGENTS.md` §0–§4, not a replacement for it. Left as-is except: the file-links below
+> point at `/home/sarge/Desktop/AI-Factory/VM-Factory/...`, which is not this clone's path (it lives
+> under `.../UCC/clones/VM-Factory`, and will differ again post-fork) — treat them as filenames
+> relative to the repo root, not as literal paths.
+
 ## Autonomous Execution Contract
 This repository is authorized for routine autonomous development inside the dedicated VM. Future agents should proceed without repeated approval requests for normal repository-local work.
 

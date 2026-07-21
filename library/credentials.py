@@ -16,10 +16,10 @@ class VaultAdapter:
     @staticmethod
     def get_secret(vault_ref: str) -> str:
         """Retrieves the actual secret value based on a reference string."""
-        # Simple lookup strategy:
-        # 1. If starts with env: lookup environment variable
-        # 2. If mock: return placeholder
-        # 3. Else fallback to environment lookup for safety in this version
+        # Fail-closed lookup strategy:
+        # 1. Explicit env: references read the named environment variable.
+        # 2. Explicit mock: references return a test-only placeholder.
+        # 3. Every other reference is refused; there is no ambient fallback.
         if vault_ref.startswith("env:"):
             env_var = vault_ref.split(":", 1)[1]
             val = os.environ.get(env_var)

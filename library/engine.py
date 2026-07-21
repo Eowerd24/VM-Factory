@@ -305,10 +305,12 @@ class NodeLifecycleEngine:
         
         return manifest
 
-    def destroy(self, name: str) -> None:
+    def destroy(self, name: str) -> NodeManifest:
         """Verb: destroy
 
-        Permanently destroys the VM, deletes its storage, and retires the credential.
+        Permanently destroys the VM, deletes its storage, and retires the
+        credential. The node manifest itself is preserved as a tombstone,
+        not deleted (locked invariant: destruction preserves tombstones).
         """
         manifest_path = self._get_manifest_path(name)
         manifest = ManifestManager.load(manifest_path)
@@ -333,13 +335,14 @@ class NodeLifecycleEngine:
             except Exception as e:
                 raise EngineError(f"Failed to nuke credential '{manifest.credential_ref}': {e}")
 
-        # 3. Transition to retired and cleanup manifest
+        # 3. Transition to retired and preserve the manifest as a tombstone
+        # (M-c, locked invariant: destruction preserves tombstones + history
+        # — UCC-Standards §15). Previously this unlinked the manifest file
+        # and removed the node's directory; the retired manifest is now the
+        # tombstone, left in place at the same path so node history stays
+        # queryable (e.g. `nodectl list --mock` still shows retired nodes).
         manifest = ManifestManager.transition(manifest, NodeState.RETIRED)
-        if manifest_path.exists():
-            manifest_path.unlink()
-            # Clean directory if empty
-            if not any(manifest_path.parent.iterdir()):
-                manifest_path.parent.rmdir()
+        ManifestManager.save(manifest, manifest_path)
 
         self.ledger.append(
             actor=self.actor,
@@ -348,3 +351,4 @@ class NodeLifecycleEngine:
             params={"event": "node_destroyed"},
             result="ok"
         )
+        return manifest

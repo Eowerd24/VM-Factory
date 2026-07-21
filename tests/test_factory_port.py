@@ -106,10 +106,10 @@ def test_reset_node_missing_snapshot_fails_not_refuses(engine, ready_node):
 
 
 @pytest.mark.parametrize("method,payload", [
-    ("release_node", {}),
-    ("get_execution", {}),
-    ("cancel_execution", {}),
-    ("quarantine_node", {}),
+    ("release_node", {"allocation_id": "nalloc_x"}),
+    ("get_execution", {"execution_id": "exec_x"}),
+    ("cancel_execution", {"execution_id": "exec_x"}),
+    ("quarantine_node", {"name": "w-01"}),
 ])
 def test_dict_methods_refuse_dependency_unavailable(engine, method, payload):
     port = VMFactoryFactoryPort(engine)
@@ -118,6 +118,17 @@ def test_dict_methods_refuse_dependency_unavailable(engine, method, payload):
     assert result.disposition == "refused"
     assert result.refusal_code == RefusalCode.DEPENDENCY_UNAVAILABLE
     assert result.retryable is True
+
+
+@pytest.mark.parametrize("method", [
+    "release_node", "get_execution", "cancel_execution", "quarantine_node",
+])
+def test_dict_methods_validate_before_dependency_refusal(engine, method):
+    result = getattr(VMFactoryFactoryPort(engine), method)({})
+    assert result.ok is False
+    assert result.disposition == "refused"
+    assert result.refusal_code == RefusalCode.VALIDATION_ERROR
+    assert result.retryable is False
 
 
 def test_reserve_node_refuses_dependency_unavailable(engine):

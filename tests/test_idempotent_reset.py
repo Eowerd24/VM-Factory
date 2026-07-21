@@ -118,3 +118,24 @@ def test_failed_reset_is_not_stored_and_may_be_retried(engine, tmp_path):
 
     second = port.reset_node({"name": "w-01", "idempotency_key": "k1"})
     assert second.disposition == "failed"  # retried, not a conflict
+
+
+def test_ambiguous_dispatch_is_not_reexecuted(engine, tmp_path, monkeypatch):
+    name = _reset_ready_node(engine, tmp_path)
+    port = VMFactoryFactoryPort(engine)
+    calls = 0
+
+    def ambiguous_reset(node_name):
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("connection dropped after dispatch")
+
+    monkeypatch.setattr(engine, "reset", ambiguous_reset)
+
+    with pytest.raises(RuntimeError):
+        port.reset_node({"name": name, "idempotency_key": "ambiguous-k"})
+    retry = port.reset_node({"name": name, "idempotency_key": "ambiguous-k"})
+
+    assert calls == 1
+    assert retry.ok is False
+    assert retry.refusal_code == RefusalCode.OUTCOME_UNKNOWN

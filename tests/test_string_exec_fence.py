@@ -16,13 +16,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 ALLOWED_RUN_CMD_CALLERS = {
-    REPO_ROOT / "library" / "engine.py",
+    REPO_ROOT / "library" / "engine.py",  # legacy assign implementation only
 }
 
 ALLOWED_ASSIGN_CALLERS = {
     REPO_ROOT / "library" / "engine.py",  # definition site
-    REPO_ROOT / "nodectl.py",             # standalone CLI
-    REPO_ROOT / "panel" / "main.py",      # standalone panel
+    REPO_ROOT / "nodectl.py",             # standalone CLI command
+    REPO_ROOT / "panel" / "main.py",      # standalone panel action
 }
 
 

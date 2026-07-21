@@ -78,12 +78,16 @@ class VMFactoryFactoryPort:
         return _dependency_unavailable()
 
     def release_node(self, request: dict) -> PortResult:
+        if "allocation_id" not in request:
+            return _validation_refusal("missing required field: allocation_id")
         return _dependency_unavailable()
 
     def request_execution(self, request: ExecutionRequestEnvelope) -> PortResult:
         return _dependency_unavailable()
 
     def get_execution(self, request: dict) -> PortResult:
+        if "execution_id" not in request:
+            return _validation_refusal("missing required field: execution_id")
         return _dependency_unavailable()
 
     def collect_handback(self, request: CollectHandbackRequest) -> PortResult:
@@ -93,6 +97,8 @@ class VMFactoryFactoryPort:
         # Standards §13: cancellation never claims termination before
         # observation. There is no Execution record to observe, so the only
         # honest disposition is refused, never "cancelled".
+        if "execution_id" not in request:
+            return _validation_refusal("missing required field: execution_id")
         return _dependency_unavailable()
 
     def reset_node(self, request: dict) -> PortResult:
@@ -112,11 +118,9 @@ class VMFactoryFactoryPort:
     def _reset_node_idempotent(self, name: str, idempotency_key: str) -> PortResult:
         """M-b (D2): opt-in idempotent replay for reset_node, gated on
         `request["idempotency_key"]` being present — the non-idempotent path
-        above is unchanged for callers that don't pass one. Only a definite
-        success is stored as a replay candidate; a failed reset is safe and
-        cheap to re-attempt (it re-checks engine state and fails the same
-        way), so it is not idempotency-tracked — `unknown` is therefore
-        never a stored, replayable disposition here either."""
+        above is unchanged for callers that don't pass one. It commits an
+        `unknown` row before dispatch; success replaces it, definite failure
+        removes it, and ambiguity retains it until reconciliation."""
         store = IdempotencyStore(self.engine.state_dir / "idempotency.db")
         payload = {"name": name}
         fingerprint = request_fingerprint(payload)
@@ -126,6 +130,14 @@ class VMFactoryFactoryPort:
         request_id = new_id("req")
         operation_id = new_id("op")
         correlation_id = new_id("corr")
+
+        if outcome == IdempotencyOutcome.REPLAY and stored.disposition == "unknown":
+            return PortResult(
+                ok=False, disposition="refused",
+                refusal_code=RefusalCode.OUTCOME_UNKNOWN,
+                message="a prior reset has an unknown outcome; reconcile it before retrying",
+                retryable=False,
+            )
 
         if outcome == IdempotencyOutcome.REPLAY:
             return PortResult(ok=True, disposition="completed", value=stored.result)
@@ -149,10 +161,15 @@ class VMFactoryFactoryPort:
         }
         validate_document("request", request_doc)
 
+        store.put_in_flight(
+            idempotency_key=idempotency_key, fingerprint=fingerprint,
+            operation_type="node.reset", created_at=request_doc["requested_at"],
+        )
+
         try:
             manifest = self.engine.reset(name)
         except EngineError as exc:
-            # Not stored: a definite failure is not a replay candidate.
+            store.delete(idempotency_key)
             return PortResult(ok=False, disposition="failed", message=str(exc), retryable=False)
 
         result_doc = {
@@ -165,12 +182,12 @@ class VMFactoryFactoryPort:
         }
         validate_document("result", result_doc)
         value = {"name": manifest.name, "state": manifest.state.value, "result": result_doc}
-        store.put(idempotency_key=idempotency_key, fingerprint=fingerprint,
-                 operation_type="node.reset", disposition="completed",
-                 result=value, created_at=result_doc["completed_at"])
+        store.complete(idempotency_key=idempotency_key, result=value)
         return PortResult(ok=True, disposition="completed", value=value)
 
     def quarantine_node(self, request: dict) -> PortResult:
+        if "name" not in request:
+            return _validation_refusal("missing required field: name")
         return _dependency_unavailable()
 
     def get_node_health(self, request: dict) -> PortResult:

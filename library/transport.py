@@ -13,6 +13,11 @@ class TransportBackend:
     """Interface for guest VM interaction (SSH/SCP)."""
 
     def run_cmd(self, ip: str, cmd: str, user: str = "admin", key_path: Optional[Path] = None) -> Tuple[int, str, str]:
+        """Fenced raw-string execution for legacy standalone assignment only.
+
+        FactoryPort adapters must use typed operations and never call this
+        method; tests/test_string_exec_fence.py enforces the call sites.
+        """
         raise NotImplementedError()
 
     def push(self, ip: str, local_path: Path, remote_path: Path, user: str = "admin", key_path: Optional[Path] = None) -> None:
