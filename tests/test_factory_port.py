@@ -166,7 +166,12 @@ def test_request_execution_and_get_and_collect(engine, ready_node):
     assert exec_res.ok is True
     exec_doc = exec_res.value
     validate_document("execution", exec_doc)
-    assert exec_doc["outcome"] == "succeeded"
+    assert exec_doc["execution_phase"] == "accepted"
+
+    # Stage actual output file for handback collection
+    exec_out = engine.state_dir / "executions" / exec_doc["id"] / "outputs"
+    exec_out.mkdir(parents=True, exist_ok=True)
+    (exec_out / "result.json").write_text('{"status": "ok"}', encoding="utf-8")
 
     # Get execution
     get_res = port.get_execution({"execution_id": exec_doc["id"]})
@@ -182,6 +187,7 @@ def test_request_execution_and_get_and_collect(engine, ready_node):
     hb_doc = hb_res.value
     validate_document("handback", hb_doc)
     assert hb_doc["execution_id"] == exec_doc["id"]
+    assert "outputs/result.json" in hb_doc["collected_paths"]
 
 
 def test_cancel_execution(engine, ready_node):
@@ -240,7 +246,7 @@ def test_quarantine_node_and_refusals(engine, ready_node):
 
 def test_s2_3_transfers_and_credential_leases(engine, ready_node):
     port = VMFactoryFactoryPort(engine)
-    
+
     # Transfer to node
     xfer_res = port.transfer_to_node({
         "name": "w-01",
@@ -252,16 +258,18 @@ def test_s2_3_transfers_and_credential_leases(engine, ready_node):
     validate_document("transfer", xfer_res.value["transfer"])
     validate_document("transfer-receipt", xfer_res.value["receipt"])
 
-    # Host-key probe and approve
+    # Host-key approval and probe
+    test_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGenuineHostKey1234567890"
+    approve = port.approve_host_key({"name": "w-01", "key": test_key})
+    assert approve.ok is True
     probe = port.probe_host_key({"name": "w-01"})
     assert probe.ok is True
-    approve = port.approve_host_key({"name": "w-01", "key": probe.value["key"]})
-    assert approve.ok is True
+    assert probe.value["key"] == test_key
 
     # Credential lease and successful cleanup
     lease_res = port.create_credential_lease({
         "name": "w-01",
-        "credential_ref": "git:deploy-key:repo1",
+        "credential_ref": "mock:deploy-key-repo1",
         "target_path": "credentials/deploy.key",
     })
     assert lease_res.ok is True
@@ -276,7 +284,7 @@ def test_s2_3_transfers_and_credential_leases(engine, ready_node):
     # Failed cleanup triggers quarantine!
     lease2_res = port.create_credential_lease({
         "name": "w-01",
-        "credential_ref": "git:deploy-key:repo2",
+        "credential_ref": "mock:deploy-key-repo2",
         "target_path": "credentials/deploy2.key",
     })
     lease2_id = lease2_res.value["id"]
@@ -313,3 +321,82 @@ def test_adapter_never_calls_fenced_string_exec_or_assign():
     }
     assert "assign" not in called_attrs
     assert "run_cmd" not in called_attrs
+
+
+# --- Negative tests proving fail-closed invariants ---
+
+def test_invalid_canonical_ids_refuse_not_replace(engine, ready_node):
+    port = VMFactoryFactoryPort(engine)
+    res = port.reserve_node(ReserveNodeRequest(
+        assignment_id="invalid-id-not-prefixed",
+        capability_requirements=[],
+        freshness_limit_seconds=60,
+        idempotency_key="key-neg-1",
+    ))
+    assert res.ok is False
+    assert res.refusal_code == RefusalCode.VALIDATION_ERROR
+
+
+def test_invalid_execution_inputs_refuse(engine, ready_node):
+    port = VMFactoryFactoryPort(engine)
+    reserve_res = port.reserve_node(ReserveNodeRequest(
+        assignment_id=new_id("asn"),
+        capability_requirements=[],
+        freshness_limit_seconds=60,
+        idempotency_key="key-neg-2",
+    ))
+    alloc = reserve_res.value
+
+    # Missing/invalid content_hash
+    bad_envelope = {
+        "schema": "ucc.execution-request",
+        "schema_version": 1,
+        "allocation_id": alloc["id"],
+        "node_id": alloc["node_id"],
+        "input_kind": "published_artifact_revision",
+        "input_ref": {
+            "kind": "artifact_revision",
+            "id": new_id("rev"),
+            "content_hash": "bad-hash",
+        },
+        "entrypoint": "run.sh",
+    }
+    res = port.request_execution(ExecutionRequestEnvelope(
+        document=bad_envelope,
+        idempotency_key="k-neg-exec-1",
+    ))
+    assert res.ok is False
+    assert res.refusal_code == RefusalCode.VALIDATION_ERROR
+
+
+def test_host_keys_never_fabricated(engine):
+    port = VMFactoryFactoryPort(engine)
+    res = port.probe_host_key({"name": "nonexistent-host-xyz"})
+    assert res.ok is False
+    assert res.refusal_code == RefusalCode.NODE_NOT_FOUND
+
+
+def test_invalid_credential_ref_refuses(engine, ready_node):
+    port = VMFactoryFactoryPort(engine)
+    res = port.create_credential_lease({
+        "name": "w-01",
+        "credential_ref": "unprefixed_insecure_ref",
+        "target_path": "credentials/secret.key",
+    })
+    assert res.ok is False
+    assert res.refusal_code == RefusalCode.VALIDATION_ERROR
+
+
+def test_directory_fsync_occurs_on_save(engine, ready_node, monkeypatch):
+    from library import node_store
+    fsync_called = []
+    orig_fsync_dir = node_store._fsync_dir
+
+    def spy_fsync_dir(path):
+        fsync_called.append(path)
+        orig_fsync_dir(path)
+
+    monkeypatch.setattr(node_store, "_fsync_dir", spy_fsync_dir)
+    port = VMFactoryFactoryPort(engine)
+    port.quarantine_node({"name": "w-01", "reason": "fsync verification"})
+    assert len(fsync_called) > 0

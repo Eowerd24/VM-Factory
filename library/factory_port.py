@@ -364,16 +364,58 @@ class VMFactoryFactoryPort:
         host = request.get("host") or request.get("name")
         if not host:
             return _validation_refusal("missing host")
-        # Pinned host key probing
-        key = f"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI{hashlib.sha256(host.encode()).hexdigest()[:32]}"
-        return PortResult(ok=True, disposition="completed", value={"host": host, "key": key})
+
+        known_hosts_path = getattr(self.engine.transport, "known_hosts_path", None)
+        if not known_hosts_path:
+            known_hosts_path = self.engine.state_dir / "ssh" / "known_hosts"
+
+        if known_hosts_path.exists():
+            for line in known_hosts_path.read_text(encoding="utf-8").splitlines():
+                parts = line.strip().split(maxsplit=1)
+                if len(parts) >= 2 and parts[0] == host:
+                    return PortResult(ok=True, disposition="completed", value={"host": host, "key": parts[1]})
+
+        node_dir = self.engine.nodes_dir / host
+        if node_dir.exists() and (node_dir / "host_key.pub").exists():
+            key = (node_dir / "host_key.pub").read_text(encoding="utf-8").strip()
+            return PortResult(ok=True, disposition="completed", value={"host": host, "key": key})
+
+        return PortResult(
+            ok=False,
+            disposition="refused",
+            refusal_code=RefusalCode.NODE_NOT_FOUND,
+            message=f"host key not found for {host}",
+            retryable=False,
+        )
 
     def approve_host_key(self, request: dict) -> PortResult:
         host = request.get("host") or request.get("name")
         key = request.get("key")
         if not host or not key:
             return _validation_refusal("missing host or key")
-        return PortResult(ok=True, disposition="completed", value={"host": host, "status": "pinned"})
+        if not (key.startswith("ssh-") or key.startswith("ecdsa-")):
+            return _validation_refusal("invalid host key format")
+
+        known_hosts_path = getattr(self.engine.transport, "known_hosts_path", None)
+        if not known_hosts_path:
+            known_hosts_path = self.engine.state_dir / "ssh" / "known_hosts"
+        known_hosts_path.parent.mkdir(parents=True, exist_ok=True)
+
+        from library.node_store import _fsync_dir
+        import os
+        fd = os.open(known_hosts_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        try:
+            os.write(fd, f"{host} {key}\n".encode("utf-8"))
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        _fsync_dir(known_hosts_path.parent)
+
+        content = known_hosts_path.read_text(encoding="utf-8")
+        if f"{host} {key}" not in content:
+            return PortResult(ok=False, disposition="failed", message="failed to verify host key persistence", retryable=False)
+
+        return PortResult(ok=True, disposition="completed", value={"host": host, "key": key, "status": "pinned"})
 
     def create_credential_lease(self, request: dict) -> PortResult:
         node_name = request.get("name") or request.get("node_id")

@@ -61,6 +61,14 @@ class NodeStoreRefusal(Exception):
         super().__init__(message)
 
 
+def _fsync_dir(dir_path: Path) -> None:
+    dir_fd = os.open(dir_path, os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
+
+
 class NodeRecordStore:
     def __init__(self, root: Path):
         self.root = root.resolve()
@@ -95,7 +103,8 @@ class NodeRecordStore:
 
     def _atomic_save(self, path: Path, doc: dict) -> None:
         data = canonical_json_bytes(doc)
-        tmp = path.with_suffix(".tmp")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(f".tmp.{os.getpid()}")
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o640)
         try:
             os.write(fd, data)
@@ -103,6 +112,7 @@ class NodeRecordStore:
         finally:
             os.close(fd)
         os.replace(tmp, path)
+        _fsync_dir(path.parent)
 
     def _load(self, path: Path, code: RefusalCode, label: str) -> dict:
         if not path.is_file():
@@ -249,20 +259,25 @@ class NodeRecordStore:
             if chosen is None:
                 raise NodeStoreRefusal(RefusalCode.NO_ELIGIBLE_NODE, "no eligible node available matching requirements")
 
+            if not assignment_id or not is_valid_id(assignment_id, expected_prefix="asn"):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid or missing assignment_id: {assignment_id}")
+            if not allocated_to or not is_valid_id(allocated_to, expected_prefix="act"):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid or missing allocated_to: {allocated_to}")
+
             alloc_id = new_id("nalloc")
             alloc_doc = {
                 "schema": "ucc.node-allocation",
                 "schema_version": 1,
                 "id": alloc_id,
                 "created_at": now_iso(),
-                "created_by": allocated_to if is_valid_id(allocated_to, expected_prefix="act") else new_id("act"),
+                "created_by": allocated_to,
                 "record_version": 1,
                 "node_id": chosen["id"],
-                "assignment_id": assignment_id if is_valid_id(assignment_id, expected_prefix="asn") else new_id("asn"),
+                "assignment_id": assignment_id,
                 "job_id": new_id("job"),
                 "operation_id": new_id("op"),
                 "allocation_phase": "reserved",
-                "allocated_to": allocated_to if is_valid_id(allocated_to, expected_prefix="act") else new_id("act"),
+                "allocated_to": allocated_to,
                 "allocated_at": now_iso(),
                 "purpose": purpose or "allocation",
             }
@@ -299,18 +314,43 @@ class NodeRecordStore:
     def request_execution(self, envelope_doc: dict, idempotency_key: str, state_dir: Path) -> dict:
         with self.locked():
             alloc_id = envelope_doc.get("allocation_id")
-            if not alloc_id:
-                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, "missing allocation_id")
-            
+            if not alloc_id or not is_valid_id(alloc_id, expected_prefix="nalloc"):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid or missing allocation_id: {alloc_id}")
+
             alloc = self._get_allocation_unlocked(alloc_id)
             if alloc["allocation_phase"] not in ["reserved", "active"]:
-                raise NodeStoreRefusal(RefusalCode.RESERVATION_EXPIRED, f"allocation {alloc_id} is in phase {alloc[allocation_phase]}")
+                raise NodeStoreRefusal(RefusalCode.RESERVATION_EXPIRED, f"allocation {alloc_id} is in phase {alloc['allocation_phase']}")
 
             node = self._get_node_unlocked(alloc["node_id"])
             if node["quarantine_state"] == "quarantined":
-                raise NodeStoreRefusal(RefusalCode.NODE_QUARANTINED, f"node {node[display_name]} is quarantined")
+                raise NodeStoreRefusal(RefusalCode.NODE_QUARANTINED, f"node {node['display_name']} is quarantined")
             if node["readiness"] not in ["ready", "busy"]:
-                raise NodeStoreRefusal(RefusalCode.NODE_NOT_READY, f"node {node[display_name]} is not ready")
+                raise NodeStoreRefusal(RefusalCode.NODE_NOT_READY, f"node {node['display_name']} is not ready")
+
+            input_kind = envelope_doc.get("input_kind")
+            if input_kind not in {"published_artifact_revision", "workspace_checkpoint", "vm_factory_operational_asset"}:
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid input_kind: {input_kind}")
+
+            input_ref = envelope_doc.get("input_ref")
+            if not isinstance(input_ref, dict):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, "missing or invalid input_ref")
+
+            ref_id = input_ref.get("id")
+            content_hash = input_ref.get("content_hash")
+            if not ref_id or not is_valid_id(ref_id):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid input_ref id: {ref_id}")
+            if not content_hash or not is_valid_hash(content_hash):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid input_ref content_hash: {content_hash}")
+
+            entrypoint = envelope_doc.get("entrypoint")
+            if not entrypoint or not is_safe_relpath(entrypoint):
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"invalid or unsafe entrypoint: {entrypoint}")
+
+            created_by = alloc.get("allocated_to")
+            if not created_by or not is_valid_id(created_by, expected_prefix="act"):
+                created_by = envelope_doc.get("created_by")
+                if not created_by or not is_valid_id(created_by, expected_prefix="act"):
+                    raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, "missing or invalid created_by actor ID")
 
             exec_id = new_id("exec")
             now = now_iso()
@@ -319,24 +359,16 @@ class NodeRecordStore:
                 "schema_version": 1,
                 "id": exec_id,
                 "created_at": now,
-                "created_by": alloc.get("allocated_to", new_id("act")),
+                "created_by": created_by,
                 "record_version": 1,
                 "node_id": node["id"],
                 "allocation_id": alloc["id"],
-                "execution_phase": "completed",
-                "outcome": "succeeded",
-                "input_kind": envelope_doc.get("input_kind", "published_artifact_revision"),
-                "input_ref": envelope_doc.get("input_ref", {
-                    "kind": "artifact_revision",
-                    "id": new_id("rev"),
-                    "content_hash": "sha256:" + "0" * 64
-                }),
-                "entrypoint": envelope_doc.get("entrypoint", "run.sh"),
+                "execution_phase": "accepted",
+                "input_kind": input_kind,
+                "input_ref": input_ref,
+                "entrypoint": entrypoint,
                 "args": envelope_doc.get("args", []),
                 "env": envelope_doc.get("env", {}),
-                "started_at": now,
-                "completed_at": now,
-                "exit_code": 0,
             }
             validate_document("execution", exec_doc)
             self._atomic_save(self.executions_dir / f"{exec_id}.json", exec_doc)
@@ -349,11 +381,6 @@ class NodeRecordStore:
             (exec_ws / "request.json").write_text(json.dumps(envelope_doc, indent=2))
             (exec_ws / "request.sha256").write_text(sha256_bytes(canonical_json_bytes(envelope_doc)))
             (exec_ws / "state.json").write_text(json.dumps(exec_doc, indent=2))
-            (exec_ws / "stdout.log").write_text("Execution completed successfully\n")
-            (exec_ws / "stderr.log").write_text("")
-            (exec_ws / "outputs" / "result.json").write_text(json.dumps({"status": "ok", "exit_code": 0}))
-            (exec_ws / "result.json").write_text(json.dumps(exec_doc, indent=2))
-            (exec_ws / "COMPLETE").write_text(now)
 
             alloc["allocation_phase"] = "active"
             self._atomic_save(self.allocations_dir / f"{alloc['id']}.json", alloc)
@@ -382,14 +409,14 @@ class NodeRecordStore:
             exec_ws = state_dir / "executions" / execution_id / "outputs"
             collected_paths = []
             if exec_ws.exists():
-                for p in exec_ws.rglob("*"):
+                for p in sorted(exec_ws.rglob("*")):
                     if p.is_file():
                         rel = str(p.relative_to(exec_ws.parent))
                         if not is_safe_relpath(rel):
                             raise NodeStoreRefusal(RefusalCode.UNSAFE_HANDBACK_PATH, f"unsafe path {rel}")
                         collected_paths.append(rel)
             if not collected_paths:
-                collected_paths = ["outputs/result.json"]
+                raise NodeStoreRefusal(RefusalCode.UNSAFE_HANDBACK_PATH, "no handback outputs available to collect")
 
             manifest_content = "\n".join(sorted(collected_paths)).encode("utf-8")
             manifest_hash = sha256_bytes(manifest_content)
@@ -402,7 +429,7 @@ class NodeRecordStore:
                 "schema_version": 1,
                 "id": hb_id,
                 "created_at": now,
-                "created_by": exec_doc.get("created_by", new_id("act")),
+                "created_by": exec_doc["created_by"],
                 "record_version": 1,
                 "execution_id": exec_doc["id"],
                 "node_id": exec_doc["node_id"],
@@ -493,8 +520,22 @@ class NodeRecordStore:
     ) -> dict:
         with self.locked():
             node = self._get_node_unlocked(node_id)
+            if node.get("quarantine_state") == "quarantined":
+                raise NodeStoreRefusal(RefusalCode.NODE_QUARANTINED, f"node {node['display_name']} is quarantined")
             if not is_safe_relpath(target_path):
                 raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"unsafe target_path {target_path}")
+
+            from library.credentials import VaultAdapter, CredentialError
+            try:
+                secret_val = VaultAdapter.get_secret(credential_ref)
+            except CredentialError as exc:
+                raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, f"cannot resolve credential reference {credential_ref}: {exc}")
+
+            # Write secret to node credential file
+            cred_file = self.root.parent / "nodes" / node["display_name"] / target_path
+            cred_file.parent.mkdir(parents=True, exist_ok=True)
+            cred_file.write_text(secret_val, encoding="utf-8")
+            cred_file.chmod(0o600)
 
             lease_id = new_id("cred")
             now = now_iso()
@@ -520,16 +561,28 @@ class NodeRecordStore:
         with self.locked():
             p = self.leases_dir / f"{lease_id}.json"
             lease = self._load(p, RefusalCode.VALIDATION_ERROR, f"lease {lease_id}")
-            if force_failure:
+            node = self._get_node_unlocked(lease["node_id"])
+            cred_file = self.root.parent / "nodes" / node["display_name"] / lease["target_path"]
+
+            cleaned_up = False
+            if not force_failure:
+                try:
+                    if cred_file.exists():
+                        cred_file.unlink()
+                    cleaned_up = not cred_file.exists()
+                except Exception:
+                    cleaned_up = False
+
+            if not cleaned_up or force_failure:
                 lease["lease_phase"] = "cleanup_failed"
+                lease["cleanup_evidence"] = {"verified": False, "method": "unverified"}
                 self._atomic_save(p, lease)
                 # Quarantine the node immediately!
-                node = self._get_node_unlocked(lease["node_id"])
                 node["quarantine_state"] = "quarantined"
                 node["readiness"] = "quarantined"
                 node["health"] = "degraded"
                 self._save_node_unlocked(node)
-                
+
                 q_id = new_id("rpt")
                 q_doc = {
                     "schema": "ucc.quarantine",
@@ -540,12 +593,12 @@ class NodeRecordStore:
                     "record_version": 1,
                     "node_id": node["id"],
                     "quarantine_state": "quarantined",
-                    "reason": f"Credential lease {lease_id} cleanup failed",
+                    "reason": f"Credential lease {lease_id} cleanup failed or unverified",
                     "quarantined_at": now_iso(),
                 }
                 validate_document("quarantine", q_doc)
                 self._atomic_save(self.quarantines_dir / f"{q_id}.json", q_doc)
-                
+
                 lease["lease_phase"] = "quarantined"
                 self._atomic_save(p, lease)
                 return lease
@@ -568,8 +621,14 @@ class NodeRecordStore:
     ) -> tuple[dict, dict]:
         with self.locked():
             node = self._get_node_unlocked(node_id)
+            if node.get("quarantine_state") == "quarantined":
+                raise NodeStoreRefusal(RefusalCode.NODE_QUARANTINED, f"node {node['display_name']} is quarantined")
             if not is_safe_relpath(source_path) or not is_safe_relpath(destination_path):
                 raise NodeStoreRefusal(RefusalCode.VALIDATION_ERROR, "unsafe transfer path")
+
+            dest_file = self.root.parent / "nodes" / node["display_name"] / destination_path
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            dest_file.write_bytes(content_bytes)
 
             xfer_id = new_id("xfer")
             now = now_iso()
