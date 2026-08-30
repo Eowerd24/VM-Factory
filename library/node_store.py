@@ -182,7 +182,7 @@ class NodeRecordStore:
                 node["health"] = "healthy" if norm_runtime == "running" and node["quarantine_state"] == "not_quarantined" else "unavailable"
                 self._save_node_unlocked(node)
                 return node
-            
+
             node_id = new_id("node")
             doc = {
                 "schema": "ucc.node",
